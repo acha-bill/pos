@@ -118,6 +118,9 @@ const PrintDetailsReport = props => {
         let key = event.target.value.toLowerCase()
         let filtered = itemsData.filter(li => li.printer.name.toLowerCase().indexOf(key) >= 0)
         setFilteredItemsData(filtered)
+        let total = 0
+        filtered.forEach(li => total += li.total)
+        setTotalSale(total)
         setFilterKey(key)
     }
 

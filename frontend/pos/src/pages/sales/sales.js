@@ -562,8 +562,6 @@ const Sales = (props) => {
             </div>
             <div className="col d-flex justify-content-end align-items-center">
               <button onClick={() => setPrintModalVisible(true)} className="btn btn-primary ml-2"><span className="mr-2"><Print style={{ fontSize: 20 }} /></span>Print</button>
-
-              <button onClick={() => addSystemItem('Print')} className="btn btn-primary ml-2"><span className="mr-2"><Print style={{ fontSize: 20 }} /></span>Print</button>
               <button onClick={() => addSystemItem('Photocopy')} className="btn btn-primary ml-2"><span className="mr-2"><Print style={{ fontSize: 20 }} /></span>Photocopy</button>
               <button onClick={() => addSystemItem('Spiral')} className="btn btn-primary ml-2"><span className="mr-2"><Print style={{ fontSize: 20 }} /></span>Spiral</button>
               <button onClick={() => addSystemItem('Scan')} className="btn btn-primary ml-2"><span className="mr-2"><Print style={{ fontSize: 20 }} /></span>Scan</button>
@@ -667,7 +665,7 @@ const Sales = (props) => {
               </tbody>
             </table>
 
-            <hr />
+            {/* <hr />
             <h5>Photocopy</h5>
             <table className="table table-striped">
               <thead className="items-table-header">
@@ -675,7 +673,7 @@ const Sales = (props) => {
                 <th className="text-center">Name</th>
               </thead>
               <tbody></tbody>
-            </table>
+            </table> */}
           </div>
         </div>
 
@@ -823,7 +821,7 @@ const NewCustomer = (props) => {
 const NewPrint = (props) => {
   const { setPrintModalVisible, printers, addPrint } = props;
   const [selectedPrinter, setSelectedPrinter] = useState(printers[0])
-  const [colorOption, setColorOption] = useState(selectedPrinter.options[0])
+  const [colorOption, setColorOption] = useState(selectedPrinter ? selectedPrinter.options[0] : null)
   const [description, setDescription] = useState("text")
   const [quality, setQuality] = useState("draft")
 
@@ -861,6 +859,10 @@ const NewPrint = (props) => {
       isVisible={true}
       setIsVisible={() => setPrintModalVisible(false)}
       title="New Customer">
+      <div className="mx-5 mb-3">
+        {printers.length === 0 && <i>You don't have any printerse</i>}
+      </div>
+
       <div className="mx-5">
         <div className="d-flex justify-content-between align-items-center mb-4">
           <div><span className="w-25 text h6">Printer</span></div>

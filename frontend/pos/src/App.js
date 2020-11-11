@@ -45,7 +45,7 @@ const App = (props) => {
     const checkLow = () => {
         let count = 0;
         items.forEach(item => {
-            if (item.qty < item.minStock && !item.isRetired) {
+            if (!item.isSystem && (item.qty < item.minStock && !item.isRetired)) {
                 count++
             }
 

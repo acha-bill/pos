@@ -3,7 +3,6 @@ import ManagePrinters from './manageprinters';
 
 const routes = [
     { id: 1, name: "Printers" },
-    { id: 2, name: "Backups" },
 ];
 
 class Print extends Component {

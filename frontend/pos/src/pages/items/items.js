@@ -142,7 +142,7 @@ function Items(props) {
             })
             let stock = 0;
             res.forEach((item) => {
-                if (item.qty < item.minStock && !item.isRetired) {
+                if (!item.isSystem && item.qty < item.minStock && !item.isRetired) {
                     stock++;
                 }
             })
@@ -219,7 +219,7 @@ function Items(props) {
 
     let nonRetiredItems = filteredItems.filter((item) => !item.isRetired);
 
-    let lowStockItems = _items.filter((item) => item.qty < item.minStock && !item.isRetired);
+    let lowStockItems = _items.filter((item) => !item.isSystem && item.qty < item.minStock && !item.isRetired);
 
 
     const handleSearchInput = (e) => {
@@ -356,7 +356,7 @@ function Items(props) {
                             Header: "Quantity",
                             Cell: (row) => {
                                 return (
-                                    <div className={row.original.qty < row.original.minStock ? 'lowQty' : ' '}>{row.original.qty}</div>
+                                    <div className={(!row.original.isSystem && row.original.qty < row.original.minStock) ? 'lowQty' : ' '}>{row.original.qty}</div>
                                 )
                             }
                         },

@@ -21,7 +21,7 @@ const (
 	PluginName = "item"
 )
 
-var systemItems = []string{"Photocopy", "Print", "Scan", "Spiral"}
+var systemItems = []string{"Photocopy", "Scan", "Spiral"}
 
 var (
 	plugin   *Item

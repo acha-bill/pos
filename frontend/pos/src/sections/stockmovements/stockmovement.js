@@ -76,8 +76,8 @@ const StockMovement = props => {
     }
 
     const handleDatePickerSaved = (dates) => {
-        let _startDate = new Date(dates.start);
-        let _endDate = new Date(dates.end);
+        let _startDate = new Date(`${dates.start}T${dates.startTime}`);
+        let _endDate = new Date(`${dates.end}T${dates.endTime}`);
         if (dates.type === 'year') {
             _startDate = new Date(dates.start, 0)
             _endDate = new Date(dates.end, 12)

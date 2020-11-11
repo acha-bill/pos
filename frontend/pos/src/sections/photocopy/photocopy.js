@@ -35,8 +35,8 @@ const PhotocopyReport = props => {
   const [isPrintModalOpen, setPrintModalOpen] = useState(false)
 
   const handleDatePickerSaved = (dates) => {
-    let _startDate = new Date(dates.start);
-    let _endDate = new Date(dates.end);
+    let _startDate = new Date(`${dates.start}T${dates.startTime}`);
+    let _endDate = new Date(`${dates.end}T${dates.endTime}`);
     if (dates.type === 'year') {
       _startDate = new Date(dates.start, 0)
       _endDate = new Date(dates.end, 12)
@@ -64,7 +64,7 @@ const PhotocopyReport = props => {
     const res = await apis.saleApi.sales()
     let sales = res.filter(sale => {
       let saleDate = new Date(sale.created_at)
-      date =  startDate <= saleDate && saleDate <= endDate
+      date = startDate <= saleDate && saleDate <= endDate
       return date;
     })
 

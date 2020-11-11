@@ -11,7 +11,8 @@ import {
   PhotocopyReport,
   SpiralReport,
   ScanReport,
-  StockMovement
+  StockMovement,
+  PrintDetailReport
 } from '../../sections';
 import SaleDetailsReport from '../../sections/saledetails/saledetails';
 
@@ -55,7 +56,7 @@ class Reports extends Component {
       case 6:
         return <Customer />;
       case 7:
-        return <PrintReport />;
+        return <PrintDetailReport />;
       case 8:
         return <PhotocopyReport />;
       case 9:

@@ -22,10 +22,19 @@ type Sale struct {
 
 // LineItem defines a line item
 type LineItem struct {
-	Item        Item    `bson:"item" json:"item"`
-	Quantity    uint32  `bson:"qty" json:"qty"`
-	RetailPrice float64 `bson:"retailPrice" json:"retailPrice"`
-	Discount    uint32  `bson:"discount" json:"discount"`
-	Total       float64 `bson:"total" json:"total"`
-	IsWholeSale bool    `bson:"isWholeSale" json:"isWholeSale"`
+	Item        Item        `bson:"item" json:"item"`
+	Quantity    uint32      `bson:"qty" json:"qty"`
+	RetailPrice float64     `bson:"retailPrice" json:"retailPrice"`
+	Discount    uint32      `bson:"discount" json:"discount"`
+	Total       float64     `bson:"total" json:"total"`
+	IsWholeSale bool        `bson:"isWholeSale" json:"isWholeSale"`
+	Printer     Printer     `bson:"printer" json:"printer"`
+	PrintDetail PrintDetail `bson:"printDetail" json:"printDetail"`
+	Type        string      `bson:'type' json:"type"`
+}
+
+type PrintDetail struct {
+	Color       string `bson:"color" json:"color"`
+	Quality     string `bson:"quality" json:"quality"`
+	Description string `bson:"description" json:"description"`
 }

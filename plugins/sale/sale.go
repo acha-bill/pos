@@ -1,11 +1,12 @@
 package sale
 
 import (
-	"fmt"
 	"math"
 	"net/http"
 	"sync"
 	"time"
+
+	printerService "github.com/acha-bill/pos/packages/dblayer/printer"
 
 	customerService "github.com/acha-bill/pos/packages/dblayer/customer"
 
@@ -158,49 +159,49 @@ func create(c echo.Context) error {
 	var lineItems []models.LineItem
 	var updatedItems []*models.Item
 	for _, line := range req.LineItems {
-		item, err := itemService.FindById(line.ItemID)
-		if err != nil {
-			return c.JSON(http.StatusBadRequest, errResponse{
-				Error: fmt.Sprintf("item %s not found", line.ItemID),
-			})
-		}
-
-		if line.IsWholeSale {
-			if line.RetailPrice < item.MinWholeSalePrice {
-				return c.JSON(http.StatusBadRequest, errResponse{
-					Error: fmt.Sprintf("item cannot be sold for less than %f", item.MinWholeSalePrice),
-				})
-			}
-			if line.RetailPrice > item.MaxWholeSalePrice {
-				return c.JSON(http.StatusBadRequest, errResponse{
-					Error: fmt.Sprintf("item cannot be sold for more than %f", item.MaxWholeSalePrice),
-				})
-			}
-		} else {
-			//if line.RetailPrice < item.MinRetailPrice {
-			//	return c.JSON(http.StatusBadRequest, errResponse{
-			//		Error: fmt.Sprintf("item cannot be sold for less than %f", item.MinRetailPrice),
-			//	})
-			//}
-			//if line.RetailPrice > item.MaxRetailPrice {
-			//	return c.JSON(http.StatusBadRequest, errResponse{
-			//		Error: fmt.Sprintf("item cannot be sold for more than %f", item.MaxRetailPrice),
-			//	})
-			//}
-		}
-
-		lineItems = append(lineItems, models.LineItem{
-			Item:        *item,
+		li := models.LineItem{
 			Quantity:    line.Quantity,
 			RetailPrice: line.RetailPrice,
 			Discount:    line.Discount,
 			Total:       line.Total,
-		})
+			Type:        line.Type,
+		}
 
+		switch line.Type {
+		case "item":
+			item, err := itemService.FindById(line.ItemID)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, errResponse{
+					Error: "item not found",
+				})
+			}
+			li.Item = *item
+			li.IsWholeSale = line.IsWholeSale
+			item.Quantity = item.Quantity - int(line.Quantity)
+			updatedItems = append(updatedItems, item)
+		case "print":
+			printer, err := printerService.FindById(line.PrinterId)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, errResponse{
+					Error: "printer not found",
+				})
+			}
+			li.Printer = *printer
+			li.PrintDetail = models.PrintDetail{
+				Color:       line.PrintDetail.Color,
+				Quality:     line.PrintDetail.Quality,
+				Description: line.PrintDetail.Description,
+			}
+		default:
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, errResponse{
+					Error: "invalid line type",
+				})
+			}
+		}
+
+		lineItems = append(lineItems, li)
 		total += line.Total
-
-		item.Quantity = item.Quantity - int(line.Quantity)
-		updatedItems = append(updatedItems, item)
 	}
 
 	if total != req.Total {
@@ -267,10 +268,19 @@ type createRequest struct {
 }
 
 type lineItem struct {
-	ItemID      string  `json:"itemId"`
-	Quantity    uint32  `json:"qty"`
-	RetailPrice float64 `json:"retailPrice"`
-	Discount    uint32  `json:"discount"`
-	Total       float64 `json:"total"`
-	IsWholeSale bool    `json:"isWholeSale"`
+	ItemID      string      `json:"itemId"`
+	Quantity    uint32      `json:"qty"`
+	RetailPrice float64     `json:"retailPrice"`
+	Discount    uint32      `json:"discount"`
+	Total       float64     `json:"total"`
+	IsWholeSale bool        `json:"isWholeSale"`
+	PrinterId   string      `json:"printerId"`
+	PrintDetail PrintDetail `json:"printDetail"`
+	Type        string      `json:"type"`
+}
+
+type PrintDetail struct {
+	Color       string `json:"color"`
+	Quality     string `json:"quality"`
+	Description string `json:"description"`
 }

@@ -23,7 +23,7 @@ const customStyles = {
     }
 };
 
-const SaleDetailsReport = props => {
+const PrintDetailsReport = props => {
 
     const currentDate = new Date()
     const startMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0)
@@ -35,8 +35,7 @@ const SaleDetailsReport = props => {
     const [filteredItemsData, setFilteredItemsData] = useState([])
     const [isPrintModalOpen, setPrintModalOpen] = useState(false)
     const [totalSale, setTotalSale] = useState(0)
-    const [totalCost, setTotalCost] = useState(0)
-    const [totalProfit, setTotalProfit] = useState(0)
+    const [filterKey, setFilterKey] = useState("")
 
 
     const handleDatePickerSaved = (dates) => {
@@ -64,8 +63,6 @@ const SaleDetailsReport = props => {
 
     const getSales = async () => {
         let _totalSale = 0
-        let _totalProfit = 0
-        let _totalCost = 0
         const res = await apis.saleApi.sales()
         let sales = res.filter(sale => {
             let saleDate = new Date(sale.created_at)
@@ -73,18 +70,14 @@ const SaleDetailsReport = props => {
         })
         let items = []
         sales.forEach(sale => {
-            let cost = 0
             sale.lineItems = sale.lineItems.map(i => {
                 i.created_at = sale.created_at
                 return i
             })
             sale.lineItems.forEach(li => {
-                if (li.Type === "item") {
-                    cost += li.qty * li.item.purchasePrice
+                if (li.Type === "print") {
                     items.push(li)
-                    _totalCost += cost
                     _totalSale += li.total
-                    _totalProfit += li.total - cost
                 }
             })
             return sale
@@ -92,8 +85,6 @@ const SaleDetailsReport = props => {
         setItemsData(items)
         setFilteredItemsData(items)
         setTotalSale(_totalSale)
-        setTotalCost(_totalCost)
-        setTotalProfit(_totalProfit)
     }
 
     const downloadClick = () => {
@@ -125,14 +116,15 @@ const SaleDetailsReport = props => {
 
     const handleSearch = (event) => {
         let key = event.target.value.toLowerCase()
-        let filtered = itemsData.filter(li => li.item.name.toLowerCase().indexOf(key) >= 0)
+        let filtered = itemsData.filter(li => li.printer.name.toLowerCase().indexOf(key) >= 0)
         setFilteredItemsData(filtered)
+        setFilterKey(key)
     }
 
     return (
         <div>
             <div className="text-center mt-2 mb-2">
-                <h3>Product sales summary report</h3>
+                <h3>Print sales summary report</h3>
                 <div className="mt-2 mb-2">
                     From {startDate.toLocaleDateString()} To:
                             {endDate.toLocaleDateString()}<button className="ml-2 btn btn-primary btn-sm" onClick={() => setDatePickerOpen(true)}><EditIcon style={{ fontSize: 20 }} /></button> &nbsp; <button className="btn btn-sm btn-primary" onClick={getSales}  ><RefreshIcon style={{ fontSize: 20 }}></RefreshIcon></button>
@@ -155,42 +147,41 @@ const SaleDetailsReport = props => {
                     <div id="print">
                         <div className="text-center mb-2">
                             <h4>Office and Communication House Limbe</h4>
-                            <span>Sales details report: {startDate.toLocaleDateString()} - {endDate.toLocaleTimeString()}</span>
+                            <span>Print details report: {startDate.toLocaleDateString()} - {endDate.toLocaleTimeString()}</span>
                         </div>
                         <table className="table table-bordered table-sm">
                             <thead>
                                 <th>#</th>
                                 <th>Date</th>
-                                <th>Name</th>
-                                <th>Type</th>
-                                <th>Retail</th>
+                                <th>Printer</th>
+                                <th>Color</th>
+                                <th>Quality</th>
+                                <th>Description</th>
                                 <th>Qty</th>
-                                <th>Total (XAF)</th>
+                                <th>Retail Price</th>
                                 <th>Discount</th>
-                                <th>Cost</th>
-                                <th>Profit</th>
+                                <th>Total</th>
                             </thead>
                             <tbody>
                                 {filteredItemsData.map((li, i) => {
                                     return <tr key={i}>
                                         <td>{i + 1}</td>
                                         <td>{new Date(li.created_at).toLocaleString()}</td>
-                                        <td>{li.item.name}</td>
-                                        <td>{li.isWholeSale ? "whole sale" : "retail"}</td>
-                                        <td>{li.retailPrice}</td>
+                                        <td>{li.printer.name}</td>
+                                        <td>{li.printDetail.color}</td>
+                                        <td>{li.printDetail.quality}</td>
+                                        <td>{li.printDetail.description}</td>
                                         <td>{li.qty}</td>
-                                        <td>{li.total}</td>
+                                        <td>{li.retailPrice}</td>
                                         <td>{li.discount}</td>
-                                        <td>{li.qty * li.item.purchasePrice}</td>
-                                        <td>{li.total - (li.qty * li.item.purchasePrice)}</td>
+                                        <td>{li.total}</td>
                                     </tr>
                                 })}
                             </tbody>
                         </table>
                         <div className="text-center mt-3 mb-2">
                             <div>Total gross sale: <b>{totalSale} XAF</b></div>
-                            <div>Total cost: <b>{totalCost} XAF</b></div>
-                            <div>Total gross profit: <b>{totalProfit} XAF</b></div>
+                            <div>Filter: {filterKey}</div>
                         </div>
                     </div>
                 </div>
@@ -224,55 +215,52 @@ const SaleDetailsReport = props => {
                     {
                         Header: "Date",
                         Cell: (row) => {
-                            console.log(row.original)
                             return <div>{new Date(row.original.created_at).toLocaleString()}</div>;
                         },
                     },
                     {
-                        Header: "Name",
+                        Header: "Printer",
                         Cell: (row) => {
-                            return <div>{row.original.item.name}</div>;
+                            return <div>{row.original.printer.name}</div>;
                         },
                     },
                     {
-                        Header: "Type",
+                        Header: "Color",
                         Cell: (row) => {
-                            return <div>{row.original.isWholeSale ? "whole sale" : "retail"}</div>;
+                            return <div>{row.original.printDetail.color}</div>;
                         },
                     },
                     {
-                        Header: "Retail Price",
-                        accessor: "retailPrice",
+                        Header: "Quality",
+                        Cell: (row) => {
+                            return <div>{row.original.printDetail.quality}</div>;
+                        },
+                    },
+                    {
+                        Header: "Description",
+                        Cell: (row) => {
+                            return <div>{row.original.printDetail.description}</div>;
+                        },
                     },
                     {
                         Header: "Qty",
                         accessor: "qty",
                     },
                     {
-                        Header: "Total",
-                        accessor: "total",
+                        Header: "Retail Price",
+                        accessor: "retailPrice",
                     },
                     {
                         Header: "Discount",
                         accessor: "discount",
                     },
                     {
-                        Header: "Cost",
-                        Cell: (row) => {
-                            return <div>{row.original.qty * row.original.item.purchasePrice}</div>;
-                        },
-                    },
-                    {
-                        Header: "Profit",
-                        Cell: (row) => {
-                            return <div>{row.original.total - (row.original.qty * row.original.item.purchasePrice)}</div>;
-                        },
+                        Header: "Total",
+                        accessor: "total",
                     },
                 ]} />
             <div className="text-center mt-3 mb-2">
                 <div>Total gross sale: <b>{totalSale} XAF</b></div>
-                <div>Total cost: <b>{totalCost} XAF</b></div>
-                <div>Total gross profit: <b>{totalProfit} XAF</b></div>
             </div>
         </div>
     );
@@ -280,4 +268,4 @@ const SaleDetailsReport = props => {
 
 
 
-export default SaleDetailsReport;
+export default PrintDetailsReport;

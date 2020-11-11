@@ -8,6 +8,7 @@ import PhotocopyReport from './photocopy/photocopy';
 import SpiralReport from './spiral/spiral';
 import ScanReport from './scan/scan';
 import StockMovement from './stockmovements/stockmovement'
+import PrintDetailReport from './printdetails/printdetails'
 
 export {
   Dashboard,
@@ -19,5 +20,6 @@ export {
   PhotocopyReport,
   SpiralReport,
   ScanReport,
-  StockMovement
+  StockMovement,
+  PrintDetailReport,
 }

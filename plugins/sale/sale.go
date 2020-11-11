@@ -177,16 +177,16 @@ func create(c echo.Context) error {
 				})
 			}
 		} else {
-			if line.RetailPrice < item.MinRetailPrice {
-				return c.JSON(http.StatusBadRequest, errResponse{
-					Error: fmt.Sprintf("item cannot be sold for less than %f", item.MinRetailPrice),
-				})
-			}
-			if line.RetailPrice > item.MaxRetailPrice {
-				return c.JSON(http.StatusBadRequest, errResponse{
-					Error: fmt.Sprintf("item cannot be sold for more than %f", item.MaxRetailPrice),
-				})
-			}
+			//if line.RetailPrice < item.MinRetailPrice {
+			//	return c.JSON(http.StatusBadRequest, errResponse{
+			//		Error: fmt.Sprintf("item cannot be sold for less than %f", item.MinRetailPrice),
+			//	})
+			//}
+			//if line.RetailPrice > item.MaxRetailPrice {
+			//	return c.JSON(http.StatusBadRequest, errResponse{
+			//		Error: fmt.Sprintf("item cannot be sold for more than %f", item.MaxRetailPrice),
+			//	})
+			//}
 		}
 
 		lineItems = append(lineItems, models.LineItem{
@@ -210,7 +210,7 @@ func create(c echo.Context) error {
 	}
 
 	if customer != nil {
-		if req.Change != 0 {
+		if req.Change < 0 {
 			customer.Debt = customer.Debt + math.Abs(req.Change)
 			_ = customerService.UpdateById(customer.ID.Hex(), *customer)
 		}
@@ -261,7 +261,7 @@ type createRequest struct {
 	LineItems  []lineItem `json:"lineItems" validate:"required"`
 	Total      float64    `json:"total"`
 	CustomerID string     `json:"customerId"`
-	Paid       float64    `json:"paid" validate:"required"`
+	Paid       float64    `json:"paid"`
 	Change     float64    `json:"change"`
 	Comment    string     `json:"comment"`
 }

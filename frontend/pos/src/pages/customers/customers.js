@@ -608,10 +608,9 @@ const BasketDetail = (props) => {
             }
           },
           {
-            Header: "Price",
+            Header: "Retail Price",
             Cell: (item) => {
-              console.log('item', item.original.item.name)
-              return <div>{item.original.item.purchasePrice}</div>;
+              return <div>{item.original.retailPrice}</div>;
             }
           },
           {

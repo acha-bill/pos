@@ -17,6 +17,8 @@ import EditIcon from '@material-ui/icons/Edit';
 import ExitToAppIcon from '@material-ui/icons/ExitToApp';
 import "./Navbar.css";
 import { useHistory } from 'react-router-dom';
+import Print from "@material-ui/icons/Print";
+
 
 function Nav(props) {
     const { user } = props;
@@ -48,6 +50,10 @@ function Nav(props) {
                         <NavLink className="nav__item" to="/items" activeClassName="is-active">
                             <LibraryBooksIcon />
                             <p className="nav__text">Items</p>
+                        </NavLink>
+                        <NavLink className="nav__item" to="/print" activeClassName="is-active">
+                            <Print />
+                            <p className="nav__text">Printers</p>
                         </NavLink>
                         <NavLink className="nav__item" to="/categories" activeClassName="is-active">
                             <CategoryIcon />
@@ -86,6 +92,10 @@ function Nav(props) {
                         <NavLink className="nav__item" to="/items" activeClassName="is-active">
                             <LibraryBooksIcon />
                             <p className="nav__text">Items</p>
+                        </NavLink>
+                        <NavLink className="nav__item" to="/print" activeClassName="is-active">
+                            <Print />
+                            <p className="nav__text">Printers</p>
                         </NavLink>
 
                     </div>

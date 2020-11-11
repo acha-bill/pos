@@ -43,7 +43,7 @@ class Login extends Component {
             this.props.setToken(res.token)
             this.props.setUser(res.user)
             this.props.setRoles(roles)
-            
+
             sessionStorage.setItem('TOKEN', res.token);
             sessionStorage.setItem('USER', JSON.stringify(res.user));
 
@@ -58,12 +58,12 @@ class Login extends Component {
         } catch (e) {
             Swal.fire({
                 icon: 'error',
-                title: 'error',
-                text: e.response.data.error
+                title: 'Error',
+                text: e.response ? e.response.data.error : 'Error connecting to API'
             })
         }
     }
- 
+
     render() {
         let { username, password } = this.state;
         console.log(this.props.history)

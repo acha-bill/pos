@@ -1,4 +1,4 @@
-package backup
+package printer
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	collectionName = "backups"
+	collectionName = "printers"
 )
 
 var (
@@ -26,19 +26,19 @@ func collection() *mongo.Collection {
 	return db.Collection(collectionName)
 }
 
-func FindAll() (rows []*models.Backup, err error) {
+func FindAll() (rows []*models.Printer, err error) {
 	// passing bson.D{{}} matches all documents in the collection
 	filter := bson.D{{}}
 	rows, err = filterRows(filter)
 	return
 }
 
-func Find(filter interface{}) (rows []*models.Backup, err error) {
+func Find(filter interface{}) (rows []*models.Printer, err error) {
 	rows, err = filterRows(filter)
 	return
 }
 
-func Create(item models.Backup) (created *models.Backup, err error) {
+func Create(item models.Printer) (created *models.Printer, err error) {
 	res, err := collection().InsertOne(ctx, item)
 	if err != nil {
 		return nil, err
@@ -48,22 +48,7 @@ func Create(item models.Backup) (created *models.Backup, err error) {
 	return
 }
 
-func UpdateById(id string, item models.Backup) error {
-	objectId, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return err
-	}
-	filter := bson.D{primitive.E{Key: "_id", Value: objectId}}
-	value := bson.M{
-		"path":       item.Path,
-		"updated_at": time.Now(),
-		"status":     item.Status,
-	}
-	update := bson.D{primitive.E{Key: "$set", Value: value}}
-	return collection().FindOneAndUpdate(ctx, filter, update).Err()
-}
-
-func FindById(id string) (item *models.Backup, err error) {
+func FindById(id string) (item *models.Printer, err error) {
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return
@@ -81,8 +66,62 @@ func FindById(id string) (item *models.Backup, err error) {
 	return
 }
 
-func filterRows(filter interface{}) ([]*models.Backup, error) {
-	rows := []*models.Backup{}
+func FindByName(name string) (item *models.Printer, err error) {
+	filter := bson.D{primitive.E{Key: "name", Value: name}}
+	rows, err := filterRows(filter)
+	if err != nil {
+		return
+	}
+	if len(rows) == 0 {
+		item = nil
+	} else {
+		item = rows[0]
+	}
+	return
+}
+
+func UpdateById(id string, item models.Printer) error {
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	filter := bson.D{primitive.E{Key: "_id", Value: objectId}}
+	value := bson.M{
+		"name":           item.Name,
+		"minRetailPrice": item.MinRetailPrice,
+		"maxRetailPrice": item.MaxRetailPrice,
+		"created_at":     item.CreatedAt,
+		"updated_at":     time.Now(),
+		"options":        item.Options,
+		"isRetired":      item.IsRetired,
+		"refills":        item.Refills,
+		"toners":         item.Toners,
+	}
+	update := bson.D{primitive.E{Key: "$set", Value: value}}
+	return collection().FindOneAndUpdate(ctx, filter, update).Err()
+}
+
+func DeleteById(id string) error {
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	filter := bson.D{primitive.E{Key: "_id", Value: objectId}}
+
+	res, err := collection().DeleteOne(ctx, filter)
+	if err != nil {
+		return err
+	}
+
+	if res.DeletedCount == 0 {
+		return ErrNoRowsDeleted
+	}
+
+	return nil
+}
+
+func filterRows(filter interface{}) ([]*models.Printer, error) {
+	rows := []*models.Printer{}
 
 	cur, err := collection().Find(ctx, filter)
 	if err != nil {
@@ -90,7 +129,7 @@ func filterRows(filter interface{}) ([]*models.Backup, error) {
 	}
 
 	for cur.Next(ctx) {
-		var u models.Backup
+		var u models.Printer
 		err := cur.Decode(&u)
 		if err != nil {
 			return rows, err

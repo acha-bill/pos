@@ -15,12 +15,13 @@ import { bindActionCreators } from 'redux';
 import './employees.css'
 
 const Employees = (props) => {
-  const { employees, roles } = props;
+  const { employees } = props;
   const [editModal, setEditModalVisible] = useState(false)
   const [selectionUser, setSelectionUser] = useState(null)
   const [isLoading, setIsLoading] = useState(false);
   const [newEmployeeModal, setNewEmployeeModalVisible] = useState(false);
   const [filteredEmployees, setFilteredEmployees] = useState([])
+  const [roles, setRoles] = useState([])
 
   useEffect(() => {
     getEmployees();
@@ -36,6 +37,8 @@ const Employees = (props) => {
       let res = await apis.employeeApi.employees();
       props.setEmployees(res);
       setFilteredEmployees(res.filter((e) => !e.isRetired))
+      let roles = await apis.roleApi.roles()
+      setRoles(roles)
       setIsLoading(false)
     } catch (e) {
       setIsLoading(false)

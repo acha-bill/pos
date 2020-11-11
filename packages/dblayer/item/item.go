@@ -125,6 +125,7 @@ func UpdateById(id string, item models.Item) error {
 		"created_at":        item.CreatedAt,
 		"updated_at":        time.Now(),
 		"isRetired":         item.IsRetired,
+		"stockMovements":    item.StockMovements,
 	}
 	update := bson.D{primitive.E{Key: "$set", Value: value}}
 	return collection().FindOneAndUpdate(ctx, filter, update).Err()

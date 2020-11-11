@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './reports.css';
-import { 
+import {
   Dashboard,
   InventoryReport,
   Sales,
@@ -11,6 +11,7 @@ import {
   PhotocopyReport,
   SpiralReport,
   ScanReport,
+  StockMovement
 } from '../../sections';
 import SaleDetailsReport from '../../sections/saledetails/saledetails';
 
@@ -20,13 +21,13 @@ const routes = [
   { id: 2, name: 'Sales' },
   { id: 3, name: 'Sales Details' },
   { id: 4, name: 'Inventory' },
-  { id: 5, name: 'Customer' },
-  { id: 6, name: 'Print' },
-  { id: 7, name: 'Photocopy' },
-  { id: 8, name: 'Spiral' },
-  { id: 9, name: 'Scan' },
+  { id: 5, name: 'Stock Mvts' },
+  { id: 6, name: 'Customer' },
+  { id: 7, name: 'Print' },
+  { id: 8, name: 'Photocopy' },
+  { id: 9, name: 'Spiral' },
+  { id: 10, name: 'Scan' },
   { id: 10, name: 'Payment' },
-  { id: 11, name: 'Audit Trail' },
 ];
 
 class Reports extends Component {
@@ -50,14 +51,16 @@ class Reports extends Component {
       case 4:
         return <InventoryReport />
       case 5:
-        return <Customer />;
+        return <StockMovement />
       case 6:
-        return <PrintReport />;
+        return <Customer />;
       case 7:
-        return <PhotocopyReport />;
+        return <PrintReport />;
       case 8:
-        return <SpiralReport />;
+        return <PhotocopyReport />;
       case 9:
+        return <SpiralReport />;
+      case 10:
         return <ScanReport />;
       default:
         return <Dashboard />;

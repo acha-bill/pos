@@ -1,10 +1,10 @@
-const baseUrl = "/item";
-export default class ItemApi {
+const baseUrl = "/printer";
+export default class PrinterApi {
     constructor(api) {
         this.api = api;
     }
 
-    async items() {
+    async printers() {
         try {
             let res = await this.api.get(`${baseUrl}/`);
             return res.data;
@@ -13,7 +13,7 @@ export default class ItemApi {
         }
     }
 
-    async addItem(obj) {
+    async addPrinter(obj) {
         try {
             let res = await this.api.post(`${baseUrl}/`, obj);
             return res.data;
@@ -22,7 +22,7 @@ export default class ItemApi {
         }
     }
 
-    async editItem(id, obj) {
+    async editPRinter(id, obj) {
         try {
             let res = await this.api.put(`${baseUrl}/${id}`, obj);
             return res.data;
@@ -31,9 +31,8 @@ export default class ItemApi {
         }
     }
 
-    async deleteItem(id) {
+    async deletePrinter(id) {
         try {
-            console.log('request', `${baseUrl}/${id}`)
             let res = await this.api.delete(`${baseUrl}/${id}`);
             return res.data;
         } catch (e) {
@@ -42,9 +41,18 @@ export default class ItemApi {
     }
 
 
-    async moveStock(id, obj) {
+    async addRefill(id, obj) {
         try {
-            let res = await this.api.post(`${baseUrl}/${id}/movestock`, obj);
+            let res = await this.api.post(`${baseUrl}/${id}/refill`, obj);
+            return res.data;
+        } catch (e) {
+            throw e;
+        }
+    }
+
+    async addToner(id, obj) {
+        try {
+            let res = await this.api.post(`${baseUrl}/${id}/toner`, obj);
             return res.data;
         } catch (e) {
             throw e;

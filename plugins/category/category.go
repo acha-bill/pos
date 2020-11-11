@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -109,11 +110,35 @@ func init() {
 	auth.AddHandler(http.MethodPut, "/:id", update)
 	auth.AddHandler(http.MethodDelete, "/:id", deleteCategory)
 	auth.AddHandler(http.MethodGet, "/:id", get)
+	auth.AddHandler(http.MethodGet, "/name/:name", getByName)
 }
 
 func get(c echo.Context) error {
 	id := c.Param("id")
 	cat, err := categoryService.FindById(id)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, errorResponse{
+			Error: err.Error(),
+		})
+	}
+	if cat == nil {
+		return c.JSON(http.StatusNotFound, errorResponse{
+			Error: "category not found",
+		})
+	}
+	return c.JSON(http.StatusOK, cat)
+
+}
+
+func getByName(c echo.Context) error {
+	name := c.Param("name")
+	decodeName, err := url.QueryUnescape(name)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, errorResponse{
+			Error: err.Error(),
+		})
+	}
+	cat, err := categoryService.FindByName(decodeName)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, errorResponse{
 			Error: err.Error(),

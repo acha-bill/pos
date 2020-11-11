@@ -18,6 +18,7 @@ import { setItems } from '../../redux/actions/itemActions';
 import { bindActionCreators } from 'redux'
 import { Link } from 'react-router-dom'
 import Switch from '@material-ui/core/Switch';
+import SyncAltIcon from '@material-ui/icons/SyncAlt';
 import "./items.css";
 
 const ExcelFile = ReactExport.ExcelFile;
@@ -37,7 +38,7 @@ const validateName = (name) => {
 
 
 const validateRequired = (n, field) => {
-    if (!n) {
+    if (n == null || n.toString() === "") {
         return `${field} is required`;
     }
 };
@@ -66,7 +67,7 @@ const validateMinStockQty = (qty) => {
 };
 
 const validateBarcode = (barcode) => {
-    return validateRequired(barcode, "Barcode");
+    //return validateRequired(barcode, "Barcode");
 };
 
 const validateCostPrice = (cp) => {
@@ -102,6 +103,7 @@ function Items(props) {
     const [isEditItemModalVisible, setEditItemModalVisible] = useState(false);
     const [isNewItemModalVisible, setNewItemModalVisible] = useState(false);
     const [isImportModalVisible, setImportModalVisible] = useState(false);
+    const [isMoveStockModalVisible, setMoveStockModalVisible] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [_items, setItems] = useState(items);
     const [categories, setCategories] = useState([]);
@@ -182,6 +184,11 @@ function Items(props) {
         setEditItemModalVisible(true);
     };
 
+    const moveStock = (item) => {
+        setSelectedItem(item)
+        setMoveStockModalVisible(true)
+    }
+
     const deleteItem = (item) => {
         Swal.fire({
             title: "Are you sure?",
@@ -222,13 +229,12 @@ function Items(props) {
         }
         let searchString = e.target.value.toLowerCase();
         let tmp = items.filter((item) => {
-            console.log(item)
             let cat = categories.find(c => c._id === item.category)
             return (
                 !item.isRetired && (
                     item.name.toLowerCase().indexOf(searchString) >= 0 ||
                     item.barcode.toLowerCase().indexOf(searchString) >= 0 ||
-                    cat.name.toLowerCase().indexOf(searchString) >= 0 ||
+                    (cat && cat.name.toLowerCase().indexOf(searchString) >= 0) ||
                     item.costPrice.toString().toLowerCase().indexOf(searchString) >= 0
                 ));
         });
@@ -354,10 +360,10 @@ function Items(props) {
                                 )
                             }
                         },
-                        {
-                            Header: "Barcode",
-                            accessor: "barcode",
-                        },
+                        // {
+                        //     Header: "Barcode",
+                        //     accessor: "barcode",
+                        // },
                         {
                             Header: "Category",
                             Cell: (row) => {
@@ -404,15 +410,21 @@ function Items(props) {
                                         >
                                             <EditIcon style={{ fontSize: 20 }} />
                                         </span>
-                                        {
-                                            !item.original.isSystem &&
+
+                                        {!item.original.isSystem && <span
+                                            onClick={() => moveStock(item.original)}
+                                            className="mr-4 table-icons"
+                                        >
+                                            <SyncAltIcon style={{ fontSize: 20 }} />
+                                        </span>}
+
+                                        {!item.original.isSystem &&
                                             <span
                                                 onClick={() => deleteItem(item.original)}
                                                 className="table-icons"
                                             >
                                                 <DeleteIcon style={{ fontSize: 20 }} />
-                                            </span>
-                                        }
+                                            </span>}
 
                                     </div>
                                 );
@@ -445,6 +457,15 @@ function Items(props) {
                         item={selectedItem}
                         categories={categories}
                         setCategories={setCategories}
+                    />
+                )}
+                {isMoveStockModalVisible && (
+                    <MoveStock
+                        setMoveStockModalVisible={() => setMoveStockModalVisible(false)}
+                        isMoveStockModalVisible={isMoveStockModalVisible}
+                        item={selectedItem}
+                        getItems={getItems}
+                        setItems={setItems}
                     />
                 )}
             </div>
@@ -482,6 +503,7 @@ const ImportFile = (props) => {
         let message;
 
         rows = rows.filter(row => row.length > 0)
+        let itemsObjs = []
         for (let i = 1; i < rows.length; i++) {
             let itemObj = {};
             itemObj.name = rows[i][0];
@@ -492,6 +514,9 @@ const ImportFile = (props) => {
             }
 
             itemObj.qty = rows[i][1];
+            if (!itemObj.qty) {
+                itemObj.qty = 0
+            }
             err = validateQty(itemObj.qty);
             if (err) {
                 message = `${err} at row ${i} column ${1}`;
@@ -506,63 +531,93 @@ const ImportFile = (props) => {
             }
 
             itemObj.category = rows[i][3];
-            if (err) {
-                message = `${err} at row ${i} column ${3}`;
-                break;
+            if (!itemObj.category) {
+                itemObj.category = "General"
             }
-
+            itemObj.category = itemObj.category.trim()
             itemObj.costPrice = rows[i][4];
-            err = validateName(itemObj.costPrice);
+            if (!itemObj.costPrice) {
+                itemObj.costPrice = 0
+            }
+            err = validateCostPrice(itemObj.costPrice);
             if (err) {
                 message = `${err} at row ${i} column ${4}`;
                 break;
             }
 
             itemObj.purchasePrice = rows[i][5]
+            if (!itemObj.purchasePrice) {
+                itemObj.purchasePrice = 0
+            }
             err = validatePurchasePrice(itemObj.purchasePrice, '"Purchase Price');
             if (err) {
                 message = `${err} at row ${i} column ${5}`;
             }
 
             itemObj.minRetailPrice = rows[i][6]
+            if (!itemObj.minRetailPrice) {
+                itemObj.minRetailPrice = 0
+            }
             err = validateMinRetailPrice(itemObj.minRetailPrice);
             if (err) {
                 message = `${err} row ${i} column ${6}`;
             }
 
             itemObj.maxRetailPrice = rows[i][7];
+            if (!itemObj.maxRetailPrice) {
+                itemObj.maxRetailPrice = 0
+            }
             err = validateMaxRetailPrice(itemObj.maxRetailPrice);
             if (err) {
                 message = `${err} row ${i} column ${7}`;
             }
 
             itemObj.maxWholeSalePrice = rows[i][8];
+            if (!itemObj.maxWholeSalePrice) {
+                itemObj.maxWholeSalePrice = 0
+            }
             err = validateMaxWholeSalePrice(itemObj.maxWholeSalePrice);
             if (err) {
                 message = `${err} row ${i} column ${8}`;
             }
 
             itemObj.minWholeSalePrice = rows[i][9];
+            if (!itemObj.minWholeSalePrice) {
+                itemObj.minWholeSalePrice = 0
+            }
             err = validateMinWholeSalePrice(itemObj.minWholeSalePrice);
             if (err) {
                 message = `${err} row ${i} column ${9}`;
             }
 
             itemObj.minStock = rows[i][10]
+            if (!itemObj.minStock) {
+                itemObj.minStock = 0
+            }
             err = validateMinStockQty(itemObj.minStock);
             if (err) {
                 message = `${err} row ${i} column ${10}`;
             }
 
-            try {
+            itemsObjs.push(itemObj)
+        }
 
+        if (message) {
+            Swal.fire("Failure", `${message}`, "error")
+            setImportModalVisible(false)
+            return
+        }
+
+        for (let i = 0; i < itemsObjs.length; i++) {
+            let itemObj = itemsObjs[i]
+            try {
                 let _quantity;
                 let _minRetailPrice;
                 let _maxRetailPrice;
                 let _purchasePrice
                 let _minStock;
                 let _costPrice = Number(itemObj.costPrice)
-                let barcode = itemObj.barcode.toString()
+                let barcode = itemObj.barcode ? itemObj.barcode.toString() : ""
 
                 itemObj.qty = itemObj.qty ? _quantity = Number(itemObj.qty) : ' ';
                 _minRetailPrice = Number(itemObj.minRetailPrice);
@@ -572,21 +627,21 @@ const ImportFile = (props) => {
                 let _minWholeSalePrice = Number(itemObj.minWholeSalePrice);
                 let _maxWholeSalePrice = Number(itemObj.maxWholeSalePrice);
 
-                let cat = categories.find(c => c.name.toLowerCase() === itemObj.category.toLowerCase())
-                if (!cat) {
+                let cat = null
+                try {
+                    cat = await apis.categoryApi.getCategoryByName(itemObj.category)
+                } catch (e) {
                     // message = `category: ${itemObj.category} does not exist. Create it first. Row ${i}`;
                     // break;
                     try {
                         cat = await apis.categoryApi.addCategory({ name: itemObj.category })
-                        let allCats = await apis.categoryApi.categories()
-                        setCategories(allCats)
                     } catch (e) {
                         message = `error creating new category: ${itemObj.category}`
                         break
                     }
                 }
 
-                let res = await apis.itemApi.addItem({
+                await apis.itemApi.addItem({
                     "name": itemObj.name,
                     "qty": _quantity,
                     "barcode": barcode,
@@ -600,12 +655,6 @@ const ImportFile = (props) => {
                     "maxWholeSalePrice": _maxWholeSalePrice,
                     "isRetired": false
                 });
-                Swal.fire(
-                    "Created!",
-                    `Item: ${res.name} created successfully`,
-                    "success"
-                );
-                getItems()
             } catch (e) {
                 setLoading(false)
                 Swal.fire({
@@ -613,15 +662,21 @@ const ImportFile = (props) => {
                     title: "error",
                     text: e.message,
                 });
+                getItems()
+                let allCats = await apis.categoryApi.categories()
+                setCategories(allCats)
+                setImportModalVisible(false);
+                return
             }
-
         }
-
-        if (message) {
-            Swal.fire("Failure", `${message}`, "error");
-            setImportModalVisible(false);
-            return;
-        }
+        getItems()
+        let allCats = await apis.categoryApi.categories()
+        setCategories(allCats)
+        Swal.fire(
+            "Created!",
+            `Items uploaded successfully`,
+            "success"
+        );
         setImportModalVisible(false);
     };
 
@@ -1092,12 +1147,12 @@ const EditItem = (props) => {
             message = `${err}`;
         }
 
-        err = validateMaxRetailPrice(maxWholeSalePrice);
+        err = validateMaxWholeSalePrice(maxWholeSalePrice);
         if (err) {
             message = `${err}`;
         }
 
-        err = validateMaxRetailPrice(minWholeSalePrice);
+        err = validateMinWholeSalePrice(minWholeSalePrice);
         if (err) {
             message = `${err}`;
         }
@@ -1182,9 +1237,9 @@ const EditItem = (props) => {
                         <span className="w-25 text h6">Category</span>
                     </div>
                     <div class="categorySelect mb-3 w-75">
-                        <select class="custom-select  " id="category" onChange={handleCategoryInput}>
+                        <select class="custom-select" id="category" value={category} onChange={handleCategoryInput}>
                             {props.categories.map((cat) =>
-                                <option key={cat._id} value={cat._id}>{cat.name}</option>
+                                <option key={cat._id} value={cat._id} selected={cat._id === category}>{cat.name}</option>
                             )}
                         </select>
                     </div>
@@ -1362,6 +1417,96 @@ const EditItem = (props) => {
         </ActionModal>
     );
 };
+
+const MoveStock = (props) => {
+    const { setMoveStockModalVisible, isMoveStockModalVisible, item, getItems } = props;
+    const [movementType, setMovementType] = useState('in')
+    const [qty, setQty] = useState(0)
+
+    const stockMovementSelectChanged = (e) => {
+        setMovementType(e.target.value)
+    }
+    const handleQtyChagned = (e) => {
+        setQty(e.target.value)
+    }
+
+    const handleCancleClick = () => {
+        setQty('')
+        setMovementType('in')
+        setMoveStockModalVisible(false)
+    }
+    const handleSuccessClick = async () => {
+        if (movementType === "in") {
+            if (Number(qty) < 0) {
+                Swal.fire(
+                    "Warning!",
+                    `Stock IN requires a positive number`,
+                    "error"
+                );
+                return
+            }
+        } else {
+            if (Number(qty) > 0) {
+                Swal.fire(
+                    "Warning!",
+                    `Stock OUT requires a negative number`,
+                    "error"
+                );
+                return
+            }
+        }
+        const obj = {
+            qty: Number(qty),
+            type: movementType
+        }
+        let res = await apis.itemApi.moveStock(item._id, obj)
+        await getItems()
+        Swal.fire(
+            "Updated!",
+            `Item: ${item.name} stock updated successfully`,
+            "success"
+        );
+        setMoveStockModalVisible(false)
+    }
+
+    return (
+        <ActionModal
+            isVisible={isMoveStockModalVisible}
+            setIsVisible={() => setMoveStockModalVisible(false)}
+            title="Move stock"
+        >
+            <div className="form">
+                <h5>Item: {item.name}</h5>
+                <h5>Qty: {item.qty}</h5>
+                <div className="form-group">
+                    <label>Movement type</label>
+                    <select className="form-control" onSelect={stockMovementSelectChanged} onChange={stockMovementSelectChanged}>
+                        <option value="in">Stock In</option>
+                        <option value="out">Stock out</option>
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label>Quantity</label>
+                    <input className="form-control" type="number" value={qty} onChange={handleQtyChagned} />
+                </div>
+                <div className="d-flex justify-content-between align-items-center mt-4 mx-5">
+                    <button
+                        onClick={() => handleCancleClick()}
+                        className="btn btn-danger mr-2"
+                    >
+                        <span className="h5 px-2">Cancel</span>
+                    </button>
+                    <button
+                        onClick={() => handleSuccessClick()}
+                        className="btn btn-success mr-2"
+                    >
+                        <span className="h5 px-2">Save</span>
+                    </button>
+                </div>
+            </div>
+        </ActionModal>
+    )
+}
 
 const mapStateToProps = ({ item }) => {
     return {

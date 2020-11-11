@@ -104,12 +104,27 @@ func backupWorker(backupDir string, c chan os.Signal) {
 				log.Error(err.Error())
 				status = false
 			}
-			_, _ = backupService.Create(models.Backup{
-				ID:        primitive.NewObjectID(),
-				Path:      backupDir,
-				CreatedAt: time.Now(),
-				Status:    status,
-			})
+
+			backups, err := backupService.FindAll()
+			if err != nil {
+				log.Error(err.Error())
+			} else {
+				if len(backups) == 0 {
+					_, _ = backupService.Create(models.Backup{
+						ID:        primitive.NewObjectID(),
+						Path:      backupDir,
+						CreatedAt: time.Now(),
+						Status:    status,
+					})
+				} else {
+					backup := backups[len(backups)-1]
+					backup.Path = backupDir
+					backup.Status = status
+					backup.UpdatedAt = time.Now()
+					_ = backupService.UpdateById(backup.ID.Hex(), *backup)
+				}
+
+			}
 		case <-c:
 			fmt.Println("shutdown...")
 			return

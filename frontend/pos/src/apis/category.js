@@ -21,8 +21,15 @@ export default class CategoryApi {
   }
   async deleteCategory(id) {
     try {
-      console.log('request', `${baseUrl}/${id}`)
       let res = await this.api.delete(`${baseUrl}/${id}`)
+      return res.data
+    } catch (e) {
+      throw e
+    }
+  }
+  async getCategoryByName(name) {
+    try {
+      let res = await this.api.get(`${baseUrl}/name/${name}`)
       return res.data
     } catch (e) {
       throw e

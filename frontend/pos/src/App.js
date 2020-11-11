@@ -17,7 +17,8 @@ import { connect } from "react-redux";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Link } from 'react-router-dom'
 import { bindActionCreators } from 'redux';
-import {setToken, setUser} from './redux/actions/authActions';
+import { setToken, setUser } from './redux/actions/authActions';
+import Print from "./pages/print/print";
 
 const App = (props) => {
     const { token, items, user, history } = props;
@@ -30,15 +31,15 @@ const App = (props) => {
     })
 
     useEffect(() => {
-      let token = sessionStorage.getItem('TOKEN');
-      let user = sessionStorage.getItem('USER');
+        let token = sessionStorage.getItem('TOKEN');
+        let user = sessionStorage.getItem('USER');
 
-      let _user = JSON.parse(user);
-      if (token && token.length > 0 && user) {
-        apis.initialize(token)
-        props.setToken(token);
-        props.setUser(_user);
-      }
+        let _user = JSON.parse(user);
+        if (token && token.length > 0 && user) {
+            apis.initialize(token)
+            props.setToken(token);
+            props.setUser(_user);
+        }
     }, [history])
 
     const checkLow = () => {
@@ -132,6 +133,7 @@ const App = (props) => {
                                                             <Route path="/employees" component={Employees} />
                                                             <Route path="/reports" component={Reports} />
                                                             <Route path="/settings" component={Settings} />
+                                                            <Route path="/print" component={Print} />
                                                         </Switch>
                                                     ) : (
                                                             <Route component={Login} />
@@ -140,7 +142,10 @@ const App = (props) => {
                                             case "Items":
                                                 return (
                                                     role.name === "Items" ? (
-                                                        <Route path="/items" component={Items} />
+                                                        <Switch>
+                                                            <Route path="/items" component={Items} />
+                                                            <Route path="/print" component={Print} />
+                                                        </Switch>
                                                     ) : (
                                                             <Route path="/login" component={Login} />
                                                         )
@@ -210,7 +215,7 @@ const mapStatesToProps = ({ auth, role, item }) => {
 }
 
 const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators({ setToken, setUser }, dispatch);
+    return bindActionCreators({ setToken, setUser }, dispatch);
 };
 
 export default connect(mapStatesToProps, mapDispatchToProps)(App);

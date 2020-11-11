@@ -102,12 +102,52 @@ func Seed() (res []*models.Item, err error) {
 }
 
 func init() {
-	auth := Plugin()
-	auth.AddHandler(http.MethodGet, "/", listItems)
-	auth.AddHandler(http.MethodPost, "/", createItem)
-	auth.AddHandler(http.MethodGet, "/:id", getItem)
-	auth.AddHandler(http.MethodPut, "/:id", updateItem)
-	auth.AddHandler(http.MethodDelete, "/:id", deleteItem)
+	plug := Plugin()
+	plug.AddHandler(http.MethodGet, "/", listItems)
+	plug.AddHandler(http.MethodPost, "/", createItem)
+	plug.AddHandler(http.MethodPost, "/:id/movestock", moveStock)
+	plug.AddHandler(http.MethodGet, "/:id", getItem)
+	plug.AddHandler(http.MethodPut, "/:id", updateItem)
+	plug.AddHandler(http.MethodDelete, "/:id", deleteItem)
+
+}
+func moveStock(c echo.Context) error {
+	id := c.Param("id")
+	item, err := itemService.FindById(id)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, errorResponse{
+			Error: err.Error(),
+		})
+	}
+	if item == nil {
+		return c.JSON(http.StatusNotFound, errorResponse{
+			Error: "item not found",
+		})
+	}
+	var req moveStockRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, errorResponse{
+			Error: err.Error(),
+		})
+	}
+
+	if err := validate.Struct(req); err != nil {
+		return c.JSON(http.StatusBadRequest, errorResponse{
+			Error: err.Error(),
+		})
+	}
+
+	mvnt := models.StockMovement{
+		Type:       req.Type,
+		Quantity:   req.Quantity,
+		CreatedAt:  time.Now(),
+		CurrentQty: item.Quantity,
+	}
+	item.StockMovements = append(item.StockMovements, mvnt)
+	item.Quantity += req.Quantity
+	item.UpdatedAt = time.Now()
+	_ = itemService.UpdateById(item.ID.Hex(), *item)
+	return c.JSON(http.StatusCreated, mvnt)
 
 }
 
@@ -144,12 +184,14 @@ func updateItem(c echo.Context) error {
 				Error: err.Error(),
 			})
 		}
-		if cat == nil {
+		if cat == nil && !item.IsSystem {
 			return c.JSON(http.StatusBadRequest, errorResponse{
 				Error: fmt.Sprintf("category %s not found", req.Category),
 			})
 		}
-		item.Category = cat.ID
+		if cat != nil {
+			item.Category = cat.ID
+		}
 	}
 	if req.Barcode != "" {
 		item.Barcode = req.Barcode
@@ -363,12 +405,17 @@ type createRequest struct {
 	Name              string  `json:"name" validate:"required"`
 	Barcode           string  `json:"barcode"`
 	Category          string  `json:"category"`
-	CostPrice         float64 `json:"costPrice" validate:"required"`
-	PurchasePrice     float64 `json:"purchasePrice" validate:"required"`
-	MinRetailPrice    float64 `json:"minRetailPrice" validate:"required"`
-	MaxRetailPrice    float64 `json:"maxRetailPrice" validate:"required"`
+	CostPrice         float64 `json:"costPrice"`
+	PurchasePrice     float64 `json:"purchasePrice"`
+	MinRetailPrice    float64 `json:"minRetailPrice"`
+	MaxRetailPrice    float64 `json:"maxRetailPrice"`
 	MinWholeSalePrice float64 `json:"minWholeSalePrice"`
 	MaxWholeSalePrice float64 `json:"maxWholeSalePrice"`
 	Quantity          int     `json:"qty"`
 	MinStock          int     `json:"minStock"`
+}
+
+type moveStockRequest struct {
+	Type     string `json:"type"`
+	Quantity int    `json:"qty"`
 }

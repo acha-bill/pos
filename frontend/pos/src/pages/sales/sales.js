@@ -69,6 +69,7 @@ const Sales = (props) => {
   const getPrinters = async () => {
     try {
       let res = await apis.printerApi.printers()
+      res = res.filter(p => !p.isRetired)
       props.setPrinters(res)
     } catch (e) {
       Swal.fire({
@@ -451,6 +452,10 @@ const Sales = (props) => {
         text: 'A sale on credit must be assigned to a customer',
         icon: 'error'
       })
+    }
+
+    if (obj.change > 0) {
+      obj.change = 0
     }
 
     console.log(obj);
@@ -860,7 +865,7 @@ const NewPrint = (props) => {
       setIsVisible={() => setPrintModalVisible(false)}
       title="New Customer">
       <div className="mx-5 mb-3">
-        {printers.length === 0 && <i>You don't have any printerse</i>}
+        {printers.length === 0 && <i>You don't have any printers</i>}
       </div>
 
       <div className="mx-5">
@@ -902,7 +907,7 @@ const NewPrint = (props) => {
       <div className="d-flex justify-content-between align-items-center mt-4 mx-5">
         <button onClick={() => handleCancleClick()} className="btn btn-danger mr-2"><span
           className="h5 px-2">Cancel</span></button>
-        <button onClick={() => handleSuccessClick()} className="btn btn-success mr-2"><span
+        <button disabled={printers.length === 0} onClick={() => handleSuccessClick()} className="btn btn-success mr-2"><span
           className="h5 px-2">Save</span></button>
       </div>
     </ActionModal>

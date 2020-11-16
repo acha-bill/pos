@@ -12,7 +12,8 @@ import {
   SpiralReport,
   ScanReport,
   StockMovement,
-  PrintDetailReport
+  PrintDetailReport,
+  PrinterRefills
 } from '../../sections';
 import SaleDetailsReport from '../../sections/saledetails/saledetails';
 
@@ -28,7 +29,7 @@ const routes = [
   { id: 8, name: 'Photocopy' },
   { id: 9, name: 'Spiral' },
   { id: 10, name: 'Scan' },
-  { id: 10, name: 'Payment' },
+  { id: 11, name: 'Printer Refills' }
 ];
 
 class Reports extends Component {
@@ -63,6 +64,8 @@ class Reports extends Component {
         return <SpiralReport />;
       case 10:
         return <ScanReport />;
+      case 11:
+        return <PrinterRefills />;
       default:
         return <Dashboard />;
     }

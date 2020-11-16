@@ -9,6 +9,7 @@ import SpiralReport from './spiral/spiral';
 import ScanReport from './scan/scan';
 import StockMovement from './stockmovements/stockmovement'
 import PrintDetailReport from './printdetails/printdetails'
+import PrinterRefills from './printerrefills/printerrefills'
 
 export {
   Dashboard,
@@ -22,4 +23,5 @@ export {
   ScanReport,
   StockMovement,
   PrintDetailReport,
+  PrinterRefills
 }

@@ -80,6 +80,7 @@ func init() {
 	plug.AddHandler(http.MethodDelete, "/:id", deletePrinter)
 	plug.AddHandler(http.MethodPost, "/:id/refill", addRefill)
 	plug.AddHandler(http.MethodPost, "/:id/toner", changeToner)
+	plug.AddHandler(http.MethodPut, "/:id/activate", undDeletePrinter)
 }
 
 func changeToner(c echo.Context) error {
@@ -184,6 +185,30 @@ func deletePrinter(c echo.Context) error {
 		})
 	}
 	item.IsRetired = true
+	err = printerService.UpdateById(item.ID.Hex(), *item)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, errorResponse{
+			Error: err.Error(),
+		})
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
+func undDeletePrinter(c echo.Context) error {
+	id := c.Param("id")
+
+	item, err := printerService.FindById(id)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, errorResponse{
+			Error: err.Error(),
+		})
+	}
+	if item == nil {
+		return c.JSON(http.StatusNotFound, errorResponse{
+			Error: "printer not found",
+		})
+	}
+	item.IsRetired = false
 	err = printerService.UpdateById(item.ID.Hex(), *item)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, errorResponse{

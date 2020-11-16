@@ -40,11 +40,21 @@ const SaleDetailsReport = props => {
 
 
     const handleDatePickerSaved = (dates) => {
-        let _startDate = new Date(`${dates.start}T${dates.startTime}`);
-        let _endDate = new Date(`${dates.end}T${dates.endTime}`);
+        let _startDate = new Date(dates.start)
+        let _endDate = new Date(dates.end)
         if (dates.type === 'year') {
             _startDate = new Date(dates.start, 0)
-            _endDate = new Date(dates.end, 12)
+            _endDate = new Date(dates.end, 11)
+        }
+        if (dates.type === "day") {
+            _startDate = new Date(`${dates.start}T${dates.startTime}`);
+            _endDate = new Date(`${dates.end}T${dates.endTime}`);
+        }
+        if (dates.type === "month") {
+            _startDate = new Date(dates.start.getFullYear(), dates.start.getMonth(), 1)
+
+            _endDate = new Date(dates.start.getFullYear(), dates.start.getMonth(), 31)
+
         }
         setStartDate(_startDate)
         setEndDate(_endDate)
@@ -224,7 +234,6 @@ const SaleDetailsReport = props => {
                     {
                         Header: "Date",
                         Cell: (row) => {
-                            console.log(row.original)
                             return <div>{new Date(row.original.created_at).toLocaleString()}</div>;
                         },
                     },

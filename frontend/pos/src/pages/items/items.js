@@ -142,7 +142,7 @@ function Items(props) {
             })
             let stock = 0;
             res.forEach((item) => {
-                if (!item.isSystem && item.qty < item.minStock && !item.isRetired) {
+                if (!item.isSystem && item.qty <= item.minStock && !item.isRetired) {
                     stock++;
                 }
             })
@@ -219,7 +219,7 @@ function Items(props) {
 
     let nonRetiredItems = filteredItems.filter((item) => !item.isRetired);
 
-    let lowStockItems = _items.filter((item) => !item.isSystem && item.qty < item.minStock && !item.isRetired);
+    let lowStockItems = _items.filter((item) => !item.isSystem && item.qty <= item.minStock && !item.isRetired);
 
 
     const handleSearchInput = (e) => {
@@ -356,7 +356,7 @@ function Items(props) {
                             Header: "Quantity",
                             Cell: (row) => {
                                 return (
-                                    <div className={(!row.original.isSystem && row.original.qty < row.original.minStock) ? 'lowQty' : ' '}>{row.original.qty}</div>
+                                    <div className={(!row.original.isSystem && row.original.qty <= row.original.minStock) ? 'lowQty' : ' '}>{row.original.qty}</div>
                                 )
                             }
                         },
@@ -506,13 +506,16 @@ const ImportFile = (props) => {
         let itemsObjs = []
         for (let i = 1; i < rows.length; i++) {
             let itemObj = {};
-            itemObj.name = rows[i][0];
+            itemObj.name = rows[i][0]
+            if (!itemObj.name) {
+                itemObj.name = ""
+            }
             let err = validateName(itemObj.name);
             if (err) {
                 message = `${err} at row ${i} column ${0}`;
                 break;
             }
-
+            itemObj.name = itemObj.name.trim()
             itemObj.qty = rows[i][1];
             if (!itemObj.qty) {
                 itemObj.qty = 0
@@ -524,11 +527,15 @@ const ImportFile = (props) => {
             }
 
             itemObj.barcode = rows[i][2];
+            if (!itemObj.barcode) {
+                itemObj.barcode = ""
+            }
             err = validateBarcode(itemObj.barcode);
             if (err) {
                 message = `${err} at row ${i} column ${2}`;
                 break;
             }
+            itemObj.barcode = itemObj.barcode.trim()
 
             itemObj.category = rows[i][3];
             if (!itemObj.category) {

@@ -38,11 +38,21 @@ const SalesReport = props => {
   const [totalProfit, setTotalProfit] = useState(0)
 
   const handleDatePickerSaved = (dates) => {
-    let _startDate = new Date(`${dates.start}T${dates.startTime}`);
-    let _endDate = new Date(`${dates.end}T${dates.endTime}`);
+    let _startDate = new Date(dates.start)
+    let _endDate = new Date(dates.end)
     if (dates.type === 'year') {
       _startDate = new Date(dates.start, 0)
-      _endDate = new Date(dates.end, 12)
+      _endDate = new Date(dates.end, 11)
+    }
+    if (dates.type === "day") {
+      _startDate = new Date(`${dates.start}T${dates.startTime}`);
+      _endDate = new Date(`${dates.end}T${dates.endTime}`);
+    }
+    if (dates.type === "month") {
+      _startDate = new Date(dates.start.getFullYear(), dates.start.getMonth(), 1)
+
+      _endDate = new Date(dates.start.getFullYear(), dates.start.getMonth(), 31)
+
     }
     setStartDate(_startDate)
     setEndDate(_endDate)
@@ -153,6 +163,7 @@ const SalesReport = props => {
                 <th>Total(XAF)</th>
                 <th>Cost (XAf)</th>
                 <th>Profit(XAF)</th>
+                <th>Comment</th>
                 <th>Cashier</th>
               </thead>
               <tbody>
@@ -164,6 +175,7 @@ const SalesReport = props => {
                     <td>{sale.total}</td>
                     <td>{sale.cost}</td>
                     <td>{sale.profit}</td>
+                    <td>{sale.commet}</td>
                     <td>{sale.cashier.name}</td>
                   </tr>
                 })}
@@ -220,6 +232,10 @@ const SalesReport = props => {
           {
             Header: "Profit (XAF)",
             accessor: "profit",
+          },
+          {
+            Header: "Comment",
+            accessor: "comment",
           },
           {
             Header: "Cashier",

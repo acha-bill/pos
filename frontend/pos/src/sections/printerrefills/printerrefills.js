@@ -30,48 +30,50 @@ function pad(num, size) {
 }
 
 
-const StockMovement = props => {
+const PrinterRefills = props => {
     const currentDate = new Date()
     const startMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0)
     const [startDate, setStartDate] = useState(startMonth)
     const [endDate, setEndDate] = useState(currentDate)
     const [rangeType, setRangeType] = useState("day")
     const [isDatePickerOPen, setDatePickerOpen] = useState(false)
-    const [items, setItems] = useState([])
-    const [movements, setStockMovements] = useState([])
+    const [printers, setPrinters] = useState([])
+    const [refills, setRefills] = useState([])
     const [isPrintModalOpen, setPrintModalOpen] = useState(false)
     const [search, setSearch] = useState('')
     const [filteredItems, setFilteredItems] = useState([])
 
     useEffect(() => {
-        getItems()
+        getPrinterRefills()
     }, [])
 
-    const getItems = async () => {
-        let res = await apis.itemApi.items()
+    const getPrinterRefills = async () => {
+        let res = await apis.printerApi.printers()
         res = res.filter(i => !i.isRetired)
-        setItems(res)
-        let _movements = []
-        res.forEach(item => {
-            if (item.stockMovements) {
-                console.log(item.stockMovements)
-                let mvnts = item.stockMovements.filter(m => startDate <= new Date(m.created_at) && new Date(m.created_at) <= endDate)
-                mvnts = mvnts.map(m => {
-                    m.item = item
-                    return m
-                })
-                _movements.push(...mvnts)
+        setPrinters(res)
+        let _refills = []
+        res.forEach(printer => {
+            if (!printer.refills) {
+                printer.refills = []
             }
+            let refills = printer.refills.filter(m => startDate <= new Date(m.created_at) && new Date(m.created_at) <= endDate)
+            refills = refills.map(r => {
+                r.printer = printer
+                return r
+            })
+            _refills.push(...refills)
         })
-        console.log(_movements)
-        setStockMovements(_movements)
-        setFilteredItems(_movements)
+        setRefills(_refills)
+        setFilteredItems(_refills)
     }
 
     const handleSearch = (e) => {
         setSearch(e.target.value)
         let key = e.target.value.toLowerCase()
-        let res = movements.filter(i => i.item.name.toLowerCase().indexOf(key) >= 0)
+        let res = refills.filter(r => r.printer.name.toLowerCase().indexOf(key) >= 0 ||
+            r.color.toLowerCase().indexOf(key) >= 0 ||
+            r.quality.toLowerCase().indexOf(key) >= 0 ||
+            r.reference.toLowerCase().indexOf(key) >= 0)
         setFilteredItems(res ? res : [])
     }
 
@@ -88,9 +90,8 @@ const StockMovement = props => {
         }
         if (dates.type === "month") {
             _startDate = new Date(dates.start.getFullYear(), dates.start.getMonth(), 1)
-
             _endDate = new Date(dates.start.getFullYear(), dates.start.getMonth(), 31)
-
+            console.log(_startDate)
         }
         setStartDate(_startDate)
         setEndDate(_endDate)
@@ -105,7 +106,7 @@ const StockMovement = props => {
         var opt = {
             margin: 1,
             filename:
-                "stock_moveent_report" +
+                "printer_refills_" +
                 d.getFullYear() +
                 pad(d.getMonth(), 2) +
                 pad(d.getDay(), 2) +
@@ -130,10 +131,10 @@ const StockMovement = props => {
     return (
         <div>
             <div className="text-center mt-2 mb-2">
-                <h3>Stock Movements report</h3>
+                <h3>Printer Refills report</h3>
                 <div className="mt-2 mb-2">
                     From {startDate.toLocaleDateString()} To:
-                            {endDate.toLocaleDateString()}<button className="ml-2 btn btn-primary btn-sm" onClick={() => setDatePickerOpen(true)}><EditIcon style={{ fontSize: 20 }} /></button> &nbsp; <button className="btn btn-sm btn-primary" onClick={getItems}  ><RefreshIcon style={{ fontSize: 20 }}></RefreshIcon></button>
+                            {endDate.toLocaleDateString()}<button className="ml-2 btn btn-primary btn-sm" onClick={() => setDatePickerOpen(true)}><EditIcon style={{ fontSize: 20 }} /></button> &nbsp; <button className="btn btn-sm btn-primary" onClick={getPrinterRefills}  ><RefreshIcon style={{ fontSize: 20 }}></RefreshIcon></button>
                     {isDatePickerOPen && <DateRangePicker label="dashboard" default="week" onClose={() => setDatePickerOpen(false)} onSave={handleDatePickerSaved}></DateRangePicker>}
                     <button onClick={() => setPrintModalOpen(true)} className="btn btn-primary ml-5">Print</button>
                 </div>
@@ -141,7 +142,7 @@ const StockMovement = props => {
             </div>
             <Modal
                 isOpen={isPrintModalOpen}
-                contentLabel="Stock movements"
+                contentLabel="printer refills"
                 style={customStyles}
                 shouldCloseOnOverlayClick={false}>
                 <div>
@@ -158,22 +159,20 @@ const StockMovement = props => {
                             <thead>
                                 <th>#</th>
                                 <th>Date</th>
-                                <th>Item</th>
-                                <th>Qty Before</th>
-                                <th>Type</th>
-                                <th>Qty added</th>
-                                <th>Qty After</th>
+                                <th>Printer</th>
+                                <th>Color</th>
+                                <th>Quality</th>
+                                <th>Reference</th>
                             </thead>
                             <tbody>
                                 {filteredItems.map((p, i) => {
                                     return <tr key={i}>
                                         <td>{i + 1}</td>
                                         <td>{new Date(p.created_at).toLocaleString()}</td>
-                                        <td>{p.item.name}</td>
-                                        <td>{p.currentQty}</td>
-                                        <td>{p.type}</td>
-                                        <td>{p.qty}</td>
-                                        <td>{p.item.qty}</td>
+                                        <td>{p.printer.name}</td>
+                                        <td>{p.color}</td>
+                                        <td>{p.quality}</td>
+                                        <td>{p.reference}</td>
                                     </tr>
                                 })}
                             </tbody>
@@ -211,30 +210,24 @@ const StockMovement = props => {
                     {
                         Header: "Item",
                         Cell: (row) => {
-                            return <div>{row.original.item.name}</div>;
+                            return <div>{row.original.printer.name}</div>;
                         },
                     },
                     {
-                        Header: "Qty Before",
-                        accessor: "currentQty",
+                        Header: "Color",
+                        accessor: "color",
                     },
                     {
-                        Header: "Type",
-                        accessor: "type",
+                        Header: "Quality",
+                        accessor: "quality",
                     },
                     {
-                        Header: "Qty added",
-                        accessor: "qty",
-                    },
-                    {
-                        Header: "Qty After",
-                        Cell: (row) => {
-                            return <div>{row.original.item.qty}</div>;
-                        },
+                        Header: "Reference",
+                        accessor: "reference",
                     },
                 ]} />
         </div>
     )
 }
 
-export default StockMovement
+export default PrinterRefills

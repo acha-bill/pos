@@ -40,6 +40,15 @@ export default class PrinterApi {
         }
     }
 
+    async activatePrinter(id) {
+        try {
+            let res = await this.api.put(`${baseUrl}/${id}/activate`);
+            return res.data;
+        } catch (e) {
+            throw e;
+        }
+    }
+
 
     async addRefill(id, obj) {
         try {

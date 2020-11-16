@@ -9,7 +9,8 @@ import { setPrinters } from '../../redux/actions/printerActions'
 import { ActionModal } from '../../components';
 import ReplayIcon from '@material-ui/icons/Replay';
 import Swal from "sweetalert2";
-
+import AddIcon from "@material-ui/icons/Add";
+import UndoIcon from '@material-ui/icons/Undo';
 
 class ManagePrinters extends Component {
     constructor(props) {
@@ -20,6 +21,7 @@ class ManagePrinters extends Component {
             selectedPrinter: null,
             isRefillMOdalVisible: false,
             isTonerModalVisible: false,
+            isNewPrinterModalVisible: false,
         }
     }
 
@@ -29,7 +31,7 @@ class ManagePrinters extends Component {
 
     getAllPrinters = async () => {
         let res = await apis.printerApi.printers()
-        res = res.filter(i => !i.isRetired)
+        //res = res.filter(i => !i.isRetired)
         this.props.setPrinters(res)
     }
 
@@ -42,8 +44,47 @@ class ManagePrinters extends Component {
             isEditModalVisible: true
         })
     }
-    deletePrinter = (printer) => {
-
+    reactivatePrinter = async (printer) => {
+        try {
+            let result = await Swal.fire({
+                title: 'Are you sure?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, activate it!'
+            })
+            if (!result.isConfirmed) {
+                return
+            }
+            await apis.printerApi.activatePrinter(printer._id)
+            this.getAllPrinters()
+        } catch (err) {
+            return Swal.fire({
+                title: 'Error',
+                icon: 'error',
+                text: 'Error deleting printer'
+            })
+        }
+    }
+    deletePrinter = async (printer) => {
+        try {
+            let result = await Swal.fire({
+                title: 'Are you sure?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, delete it!'
+            })
+            if (!result.isConfirmed) {
+                return
+            }
+            await apis.printerApi.deletePrinter(printer._id)
+            this.getAllPrinters()
+        } catch (err) {
+            return Swal.fire({
+                title: 'Error',
+                icon: 'error',
+                text: 'Error deleting printer'
+            })
+        }
     }
     refill = (printer) => {
         this.setState({
@@ -57,13 +98,31 @@ class ManagePrinters extends Component {
             isTonerModalVisible: true
         })
     }
+    handleNewPrinterClick = () => {
+        this.setState({
+            isNewPrinterModalVisible: true
+        })
+    }
 
     render() {
         let { printers } = this.props
-        let { isEditModalVisible, selectedPrinter, isRefillMOdalVisible, isTonerModalVisible } = this.state
+        let { isEditModalVisible, selectedPrinter, isRefillMOdalVisible, isTonerModalVisible, isNewPrinterModalVisible } = this.state
         return (
             <div className="container">
-                <h4>Printers</h4>
+                <div className="col d-flex justify-content-between align-items-center mb-3">
+                    <div className="ml-2">
+                        <h4>Printers</h4>
+                    </div>
+                    <div className="ml-2">
+                        <button
+                            className="btn btn-primary"
+                            onClick={this.handleNewPrinterClick}
+                        >
+                            <AddIcon style={{ position: "relative", bottom: "2" }} />
+                            <span className="ml-3">New Printer</span>
+                        </button>
+                    </div>
+                </div>
                 <ReactTable
                     showPagination={true}
                     showPageSizeOptions={false}
@@ -72,7 +131,7 @@ class ManagePrinters extends Component {
                     defaultPageSize={10}
                     style={{ textAlign: "center" }}
                     loadingText="Loading Products ..."
-                    noDataText="No products found"
+                    noDataText="No printers found"
                     className="-highlight -striped rt-rows-height ReactTable"
                     columns={[
                         {
@@ -106,32 +165,37 @@ class ManagePrinters extends Component {
                             Header: "Actions",
                             Cell: (item) => {
                                 return (
-                                    <div>
-                                        <span
+                                    <>
+                                        {!item.original.isRetired ? <div> <span
                                             onClick={() => this.editPrinter(item.original)}
                                             className="mr-4 table-icons" title="edit"
                                         >
                                             <EditIcon style={{ fontSize: 20 }} />
                                         </span>
-                                        <span
-                                            onClick={() => this.refill(item.original)}
-                                            className="mr-4 table-icons" title="refill"
-                                        >
-                                            <ReplayIcon style={{ fontSize: 20 }} />
-                                        </span>
-                                        <span
-                                            onClick={() => this.toner(item.original)}
-                                            className="mr-4 table-icons" title="toner"
-                                        >
-                                            <SettingsInputComponentIcon style={{ fontSize: 20 }} />
-                                        </span>
-                                        <span
-                                            onClick={() => this.deletePrinter(item.original)}
-                                            className="table-icons" title="deactivate"
-                                        >
-                                            <DeleteIcon style={{ fontSize: 20 }} />
-                                        </span>
-                                    </div>
+                                            <span
+                                                onClick={() => this.refill(item.original)}
+                                                className="mr-4 table-icons" title="refill"
+                                            >
+                                                <ReplayIcon style={{ fontSize: 20 }} />
+                                            </span>
+                                            <span
+                                                onClick={() => this.toner(item.original)}
+                                                className="mr-4 table-icons" title="toner"
+                                            >
+                                                <SettingsInputComponentIcon style={{ fontSize: 20 }} />
+                                            </span>
+                                            <span
+                                                onClick={() => this.deletePrinter(item.original)}
+                                                className="table-icons" title="deactivate"
+                                            >
+                                                <DeleteIcon style={{ fontSize: 20 }} />
+                                            </span></div> : <div>Undeelete <span
+                                                onClick={() => this.reactivatePrinter(item.original)}
+                                                className="ml-4 table-icons" title="undelete"
+                                            >
+                                                <UndoIcon style={{ fontSize: 20 }} />
+                                            </span></div>}
+                                    </>
                                 )
                             }
                         }
@@ -155,6 +219,12 @@ class ManagePrinters extends Component {
                     <RefillToner
                         setTonerModalVisible={() => this.setState({ isTonerModalVisible: false })}
                         printer={selectedPrinter}
+                        getAllPrinters={() => this.getAllPrinters()}
+                    />
+                )}
+                {isNewPrinterModalVisible && (
+                    <NewPrinter
+                        setNewPrinterModalVisible={() => this.setState({ isNewPrinterModalVisible: false })}
                         getAllPrinters={() => this.getAllPrinters()}
                     />
                 )}
@@ -324,7 +394,7 @@ class RefillToner extends Component {
             <ActionModal
                 isVisible={true}
                 setIsVisible={() => setTonerModalVisible(false)}
-                title="Refill Printer"
+                title="Refill Toner"
             >
                 <div className="mx-5">
                     <h4 className="mb-3">{name}</h4>
@@ -365,6 +435,161 @@ class RefillToner extends Component {
 }
 
 
+class NewPrinter extends Component {
+    constructor(props) {
+        super(props)
+        this.state = {
+            name: '',
+            minRetailPrice: 0,
+            maxRetailPrice: 0,
+            options: [],
+            bwOption: false,
+            colorOption: false,
+        }
+    }
+
+    handleNameInput = (e) => this.setState({ name: e.target.value })
+    handleMinRetailPrice = (e) => this.setState({ minRetailPrice: Number(e.target.value) })
+    handleMaxRetailPrice = (e) => this.setState({ maxRetailPrice: Number(e.target.value) })
+    bwOptionChanged = (e) => this.setState({ bwOption: e.target.checked })
+    colorOptionChanged = (e) => this.setState({ colorOption: e.target.checked })
+
+    handleCancleClick = () => {
+        this.props.setNewPrinterModalVisible(false);
+    };
+
+    handleSuccessClick = async (id) => {
+        let { name, minRetailPrice, maxRetailPrice, bwOption, colorOption } = this.state;
+        if (!name) {
+            return Swal.fire("Error", `name is required`, "error");
+        }
+        let obj = {
+            name,
+            minRetailPrice,
+            maxRetailPrice,
+            options: []
+        }
+        if (bwOption) {
+            obj.options.push("bw")
+        }
+        if (colorOption) {
+            obj.options.push("color")
+        }
+        if (obj.options.length === 0) {
+            return Swal.fire({
+                title: 'Error',
+                icon: 'error',
+                text: 'At least 1 option is required'
+            })
+        }
+
+        try {
+            await apis.printerApi.addPrinter(obj)
+            this.props.getAllPrinters()
+            Swal.fire("Success", `pritner created successfully`, "success");
+        } catch (err) {
+            Swal.fire("Error", `Error adding printer`, "error");
+        } finally {
+            this.props.setNewPrinterModalVisible(false)
+        }
+    }
+
+    render() {
+        const { setNewPrinterModalVisible } = this.props
+        const { name, minRetailPrice, maxRetailPrice, bwOption, colorOption } = this.state;
+        return (
+            <ActionModal
+                isVisible={true}
+                setIsVisible={() => setNewPrinterModalVisible(false)}
+                title="New Printer"
+            >
+                <div className="mx-5">
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <span className="w-25 text h6">Name</span>
+                        </div>
+                        <input
+                            name="ref"
+                            placeholder="reference"
+                            value={name}
+                            onChange={this.handleNameInput}
+                            type="text"
+                            className={"w-75 form-control input"}
+                        />
+                    </div>
+                </div>
+                <div className="mx-5">
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <span className="w-25 text h6">Min Retail Price</span>
+                        </div>
+                        <input
+                            name="min"
+                            placeholder="min retail price"
+                            value={minRetailPrice}
+                            onChange={this.handleMinRetailPrice}
+                            type="number"
+                            className={"w-75 form-control input"}
+                        />
+                    </div>
+                </div>
+                <div className="mx-5">
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <span className="w-25 text h6">Max Retail Price</span>
+                        </div>
+                        <input
+                            name="max"
+                            placeholder="max retail price"
+                            value={maxRetailPrice}
+                            onChange={this.handleMaxRetailPrice}
+                            type="number"
+                            className={"w-75 form-control input"}
+                        />
+                    </div>
+                </div>
+                <div className="mx-5">
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <span className="w-25 text h6">Options</span>
+                        </div>
+                        <div>
+                            <input
+                                checked={bwOption}
+                                type="checkbox"
+                                className="mr-3"
+                                onChange={this.bwOptionChanged}
+                            />Black and White<br />
+                            <input
+                                checked={colorOption}
+                                type="checkbox"
+                                onChange={this.colorOptionChanged}
+                                className="mr-3"
+                            />Color
+                        </div>
+                    </div>
+                </div>
+                <div className="d-flex justify-content-between align-items-center mt-4 mx-5">
+                    <button
+                        onClick={() => this.handleCancleClick(false)}
+                        className="btn btn-danger mr-2"
+                    >
+                        <span className="h5 px-2">Cancel</span>
+                    </button>
+                    <button
+                        onClick={() => this.handleSuccessClick()}
+                        className="btn btn-success mr-2"
+                    >
+                        <span className="h5 px-2">Save</span>
+                    </button>
+                </div>
+
+            </ActionModal>
+        )
+    }
+}
+
+
 class EditPrinter extends Component {
     constructor(props) {
         super(props)
@@ -381,8 +606,8 @@ class EditPrinter extends Component {
     handleNameInput = (e) => this.setState({ name: e.target.value });
     handleMinRetailPrice = (e) => this.setState({ minRetailPrice: e.target.value });
     handleMaxRetailPrice = (e) => this.setState({ maxRetailPrice: e.target.value });
-    handleBWSelect = (e) => this.setState({ bwOption: e.checked })
-    handleColorSelect = (e) => this.setState({ colorOption: e.checked })
+    handleBWSelect = (e) => this.setState({ bwOption: e.target.checked })
+    handleColorSelect = (e) => this.setState({ colorOption: e.target.checked })
 
     handleCancleClick = () => {
         this.props.setEditModalVisible(false);
@@ -403,6 +628,14 @@ class EditPrinter extends Component {
         }
         if (colorOption) {
             obj.options.push("color")
+        }
+
+        if (obj.options.length === 0) {
+            return Swal.fire({
+                title: 'error',
+                text: 'Atleast 1 option is required',
+                icon: 'error'
+            })
         }
 
         try {

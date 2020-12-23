@@ -30,7 +30,7 @@ type LineItem struct {
 	IsWholeSale bool        `bson:"isWholeSale" json:"isWholeSale"`
 	Printer     Printer     `bson:"printer" json:"printer"`
 	PrintDetail PrintDetail `bson:"printDetail" json:"printDetail"`
-	Type        string      `bson:'type' json:"type"`
+	Type        string      `bson:"type" json:"type"`
 }
 
 type PrintDetail struct {

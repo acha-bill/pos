@@ -1,8 +1,12 @@
 package sale
 
 import (
+	"github.com/prometheus/common/log"
+	"io/ioutil"
 	"math"
 	"net/http"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -114,6 +118,140 @@ func get(c echo.Context) error {
 		})
 	}
 	return c.JSON(http.StatusOK, sale)
+}
+
+func formatSale(s *models.Sale) string {
+	var name = "OCH"
+	var street = "Nambeke Street"
+	var town = "Limbe"
+	var phone = "569987743"
+
+	var lineLength = 42
+	var maxQtyLength = 3 + 2   //length of Qty
+	var maxTotalLength = 5 + 2 //length of Total
+	var maxProductLength = lineLength - (maxQtyLength + maxTotalLength)
+
+	var data = ""
+	data += "\n"
+	for i := 0; i < (lineLength-len(name))/2; i++ {
+		data += " "
+	}
+	data += name
+	data += "\n"
+	for i := 0; i < (lineLength-len(street))/2; i++ {
+		data += " "
+	}
+	data += street
+	data += "\n"
+
+	for i := 0; i < (lineLength-len(town))/2; i++ {
+		data += " "
+	}
+	data += town
+	data += "\n"
+
+	for i := 0; i < (lineLength-len(phone))/2; i++ {
+		data += " "
+	}
+	data += phone
+	data += "\n\n"
+	data += "   Product"
+	for i := 0; i < maxProductLength-len("   Product"); i++ {
+		data += " "
+	}
+
+	data += "Qty"
+	for i := 0; i < maxQtyLength-len("Qty"); i++ {
+		data += " "
+	}
+	data += "Total"
+	data += "\n\n"
+
+	for _, item := range s.LineItems {
+		var main = "   " + item.Item.Name
+		if len(main) > maxProductLength {
+			main = main[:maxProductLength]
+		}
+		//for i := 0; i < maxProductLength-len(main); i++ {
+		//	data += " "
+		//}
+		data += main
+		for i := 0; i < maxProductLength-len(main); i++ {
+			data += " "
+		}
+
+		var qty = strconv.FormatUint(uint64(item.Quantity), 10)
+		data += " " + qty
+		for i := 0; i < maxQtyLength-len(" "+qty); i++ {
+			data += " "
+		}
+
+		data += "CFA " + strconv.FormatFloat(item.Total, 'f', 2, 64)
+		data += "\n"
+	}
+	for i := 0; i < lineLength; i++ {
+		data += "-"
+	}
+	data += "\n"
+	data += "   Total To Pay"
+	for i := 0; i < lineLength/2-len("   Total To Pay"); i++ {
+		data += " "
+	}
+	data += "CFA " + strconv.FormatFloat(s.Total, 'f', 2, 64)
+	data += "\n"
+	data += "   Paid"
+	for i := 0; i < lineLength/2-len("   Paid"); i++ {
+		data += " "
+	}
+	data += "CFA " + strconv.FormatFloat(s.Paid, 'f', 2, 64)
+	data += "\n"
+	data += "   Change"
+	for i := 0; i < lineLength/2-len("   Change"); i++ {
+		data += " "
+	}
+	data += "CFA " + strconv.FormatFloat(s.Change, 'f', 2, 64)
+	data += "\n"
+	for i := 0; i < lineLength; i++ {
+		data += "-"
+	}
+	data += "\n"
+	data += "   Date"
+	for i := 0; i < lineLength/2-len("   Date"); i++ {
+		data += " "
+	}
+	data += s.CreatedAt.String()[:19]
+	data += "\n"
+	data += "   ID"
+	for i := 0; i < lineLength/2-len("   ID"); i++ {
+		data += " "
+	}
+	data += s.ID.Hex()[0:]
+	data += "\n"
+	data += "   Cashier"
+	for i := 0; i < lineLength/2-len("   Cashier"); i++ {
+		data += " "
+	}
+	data += s.Cashier.Name
+	data += "\n"
+	data += "   Comment"
+	var c = s.Comment
+	if len(c) > lineLength {
+		c = c[0:lineLength]
+	}
+	for i := 0; i < lineLength/2-len("   Comment"); i++ {
+		data += " "
+	}
+	data += c
+	data += "\n"
+	for i := 0; i < lineLength; i++ {
+		data += "-"
+	}
+	data += "\n"
+	for i := 0; i < lineLength/2-len("   Thank You"); i++ {
+		data += " "
+	}
+	data += "   Thank You"
+	return data
 }
 
 func create(c echo.Context) error {
@@ -239,6 +377,17 @@ func create(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errResponse{
 			Error: err.Error(),
 		})
+	}
+
+	receipt := formatSale(created)
+	dir, err := os.Getwd()
+	receiptDir := dir + "/receipts"
+	if _, err := os.Stat(receiptDir); os.IsNotExist(err) {
+		_ = os.Mkdir(receiptDir, 0777)
+	}
+	err = ioutil.WriteFile(receiptDir+"/"+created.ID.Hex()+".txt", []byte(receipt), 0644)
+	if err != nil {
+		log.Info("Error writing receipting: ", err.Error())
 	}
 
 	return c.JSON(http.StatusCreated, created)

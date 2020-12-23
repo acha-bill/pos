@@ -454,9 +454,9 @@ const Sales = (props) => {
       })
     }
 
-    if (obj.change > 0) {
-      obj.change = 0
-    }
+    // if (obj.change > 0) {
+    //   obj.change = 0
+    // }
 
     console.log(obj);
     Swal.fire({

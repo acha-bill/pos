@@ -1,7 +1,6 @@
 package sale
 
 import (
-	"github.com/prometheus/common/log"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -9,6 +8,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/prometheus/common/log"
 
 	printerService "github.com/acha-bill/pos/packages/dblayer/printer"
 
@@ -121,10 +122,12 @@ func get(c echo.Context) error {
 }
 
 func formatSale(s *models.Sale) string {
-	var name = "OCH"
-	var street = "Nambeke Street"
-	var town = "Limbe"
-	var phone = "569987743"
+	var name = "OFFICE & COMMUNICATION HOUSE"
+	var street = "OCH LIMBE"
+	var town = "Adjacent Rainbow Chemist & UBA Bank"
+	var phone = "676 91 22 06 / 233 33 36 19 "
+	var endNote = "Dear customer, goods bought are not refundable"
+	var thanks = "Thanks for trusting us!!!"
 
 	var lineLength = 42
 	var maxQtyLength = 3 + 2   //length of Qty
@@ -247,10 +250,15 @@ func formatSale(s *models.Sale) string {
 		data += "-"
 	}
 	data += "\n"
-	for i := 0; i < lineLength/2-len("   Thank You"); i++ {
+	for i := 0; i < lineLength/2-len(endNote); i++ {
 		data += " "
 	}
-	data += "   Thank You"
+	data += endNote
+	data += "\n"
+	for i := 0; i < (lineLength-len(thanks))/2; i++ {
+		data += " "
+	}
+	data += thanks
 	return data
 }
 
@@ -380,7 +388,7 @@ func create(c echo.Context) error {
 	}
 
 	receipt := formatSale(created)
-	dir, err := os.Getwd()
+	dir, _ := os.Getwd()
 	receiptDir := dir + "/receipts"
 	if _, err := os.Stat(receiptDir); os.IsNotExist(err) {
 		_ = os.Mkdir(receiptDir, 0777)

@@ -89,7 +89,7 @@ const SaleDetailsReport = props => {
                 return i
             })
             sale.lineItems.forEach(li => {
-                if (li.Type === "item") {
+                if (li.type === "item") {
                     cost += li.qty * li.item.purchasePrice
                     items.push(li)
                     _totalCost += cost
@@ -98,6 +98,11 @@ const SaleDetailsReport = props => {
                 }
             })
             return sale
+        })
+        items = items.sort((a, b) => {
+            var aDate = new Date(a.created_at)
+            var bDate = new Date(b.created_at)
+            return bDate - aDate;
         })
         setItemsData(items)
         setFilteredItemsData(items)

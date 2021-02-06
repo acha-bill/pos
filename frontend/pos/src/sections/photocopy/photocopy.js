@@ -81,11 +81,17 @@ const PhotocopyReport = props => {
     sales.forEach(sale => {
       sale.lineItems.forEach(li => {
         if (li.item.name === 'Photocopy') {
-          li.created_at = date;
+          li.created_at = sale.created_at;
           photocopies.push(li)
         }
       })
     });
+
+    photocopies = photocopies.sort((a, b) => {
+      var aDate = new Date(a.created_at)
+      var bDate = new Date(b.created_at)
+      return bDate.getTime() - aDate.getTime()
+    })
 
     setphotocopyData(photocopies);
   }

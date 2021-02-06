@@ -81,13 +81,16 @@ const PrintReport = props => {
     sales.forEach(sale => {
       sale.lineItems.forEach(li => {
         if (li.item.name === 'Print') {
-          li.created_at = date;
+          li.created_at = sale.created_at;
           prints.push(li)
         }
       })
     });
-
-    console.log(prints)
+    prints = prints.sort((a, b) => {
+      var aDate = new Date(a.created_at)
+      var bDate = new Date(b.created_at)
+      return bDate - aDate;
+    })
     setprintData(prints);
   }
 

@@ -78,6 +78,10 @@ const SalesReport = props => {
     let sales = res.filter(sale => {
       let saleDate = new Date(sale.created_at)
       return startDate <= saleDate && saleDate <= endDate
+    }).sort((a, b) => {
+      var aDate = new Date(a.created_at)
+      var bDate = new Date(b.created_at)
+      return bDate.getTime() - aDate.getTime()
     })
     sales = sales.map(sale => {
       let qty = 0

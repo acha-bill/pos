@@ -1,0 +1,21 @@
+
+       OFFICE & COMMUNICATION HOUSE
+                OCH LIMBE
+   Adjacent Rainbow Chemist & UBA Bank
+       676 91 22 06 / 233 33 36 19 
+
+   Product                    Qty  Total
+
+   Photocopy                   1   CFA 1000.00
+------------------------------------------
+   Total To Pay      CFA 1000.00
+   Paid              CFA 2000.00
+   Change            CFA 1000.00
+------------------------------------------
+   Date              2021-02-06 14:33:16
+   ID                601e9a9cc3aed4b70b1f7f30
+   Cashier           Admin
+   Comment           
+------------------------------------------
+Dear customer, goods bought are not refundable
+        Thanks for trusting us!!!

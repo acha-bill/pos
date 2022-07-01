@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { DateRangePicker } from '../../components'
-import EditIcon from '@material-ui/icons/Edit';
-import ReactTable from 'react-table';
+import React, { useEffect, useState } from "react";
+import { DateRangePicker } from "../../components";
+import EditIcon from "@material-ui/icons/Edit";
+import ReactTable from "react-table";
 import apis from "../../apis/apis";
-import RefreshIcon from '@material-ui/icons/Refresh';
+import RefreshIcon from "@material-ui/icons/Refresh";
 import html2pdf from "html2pdf.js";
-import Swal from 'sweetalert2';
-import Modal from 'react-modal';
-
+import Swal from "sweetalert2";
+import Modal from "react-modal";
 
 const customStyles = {
   content: {
@@ -19,47 +18,57 @@ const customStyles = {
     height: "90%",
     marginRight: "-50%",
     transform: "translate(-50%, -50%)",
-    borderRadius: "10px"
-  }
+    borderRadius: "10px",
+  },
 };
 
-const SpiralReport = props => {
-
-  const currentDate = new Date()
-  const startMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0)
-  const [startDate, setStartDate] = useState(startMonth)
-  const [endDate, setEndDate] = useState(currentDate)
-  const [rangeType, setRangeType] = useState("day")
-  const [isDatePickerOPen, setDatePickerOpen] = useState(false)
-  const [spiralData, setspiralData] = useState([])
-  const [isPrintModalOpen, setPrintModalOpen] = useState(false)
+const SpiralReport = (props) => {
+  const currentDate = new Date();
+  const startMonth = new Date(
+    currentDate.getFullYear(),
+    currentDate.getMonth(),
+    0
+  );
+  const [startDate, setStartDate] = useState(startMonth);
+  const [endDate, setEndDate] = useState(currentDate);
+  const [rangeType, setRangeType] = useState("day");
+  const [isDatePickerOPen, setDatePickerOpen] = useState(false);
+  const [spiralData, setspiralData] = useState([]);
+  const [isPrintModalOpen, setPrintModalOpen] = useState(false);
 
   const handleDatePickerSaved = (dates) => {
-    let _startDate = new Date(dates.start)
-    let _endDate = new Date(dates.end)
-    if (dates.type === 'year') {
-      _startDate = new Date(dates.start, 0)
-      _endDate = new Date(dates.end, 11)
+    let _startDate = new Date(dates.start);
+    let _endDate = new Date(dates.end);
+    if (dates.type === "year") {
+      _startDate = new Date(dates.start, 0);
+      _endDate = new Date(dates.end, 11);
     }
     if (dates.type === "day") {
       _startDate = new Date(`${dates.start}T${dates.startTime}`);
       _endDate = new Date(`${dates.end}T${dates.endTime}`);
     }
     if (dates.type === "month") {
-      _startDate = new Date(dates.start.getFullYear(), dates.start.getMonth(), 1)
+      _startDate = new Date(
+        dates.start.getFullYear(),
+        dates.start.getMonth(),
+        1
+      );
 
-      _endDate = new Date(dates.start.getFullYear(), dates.start.getMonth(), 31)
-
+      _endDate = new Date(
+        dates.start.getFullYear(),
+        dates.start.getMonth(),
+        31
+      );
     }
-    setStartDate(_startDate)
-    setEndDate(_endDate)
-    setRangeType(dates.type)
-    setDatePickerOpen(false)
-  }
+    setStartDate(_startDate);
+    setEndDate(_endDate);
+    setRangeType(dates.type);
+    setDatePickerOpen(false);
+  };
 
   useEffect(() => {
-    getSales()
-  }, [])
+    getSales();
+  }, []);
 
   function pad(num, size) {
     var s = num + "";
@@ -68,27 +77,38 @@ const SpiralReport = props => {
   }
 
   const getSales = async () => {
+    Swal.fire({
+      title: "",
+      text: `Crunching data... `,
+      icon: "info",
+      showConfirmButton: false,
+    });
+    Swal.showLoading();
     let spirals = [];
-    let date = '';
+    let date = "";
 
-    const res = await apis.saleApi.sales()
-    let sales = res.filter(sale => {
-      let saleDate = new Date(sale.created_at)
-      date = startDate <= saleDate && saleDate <= endDate
+    const res = await apis.saleApi.sales();
+    let sales = res.filter((sale) => {
+      let saleDate = new Date(sale.created_at);
+      date = startDate <= saleDate && saleDate <= endDate;
       return date;
-    })
+    });
 
-    sales.forEach(sale => {
-      sale.lineItems.forEach(li => {
-        if (li.item.name === 'Spiral') {
+    sales.forEach((sale) => {
+      if (!sale.lineItems) {
+        sale.lineItems = [];
+      }
+      sale.lineItems.forEach((li) => {
+        if (li.item.name === "Spiral") {
           li.created_at = date;
-          spirals.push(li)
+          spirals.push(li);
         }
-      })
+      });
     });
 
     setspiralData(spirals);
-  }
+    Swal.close();
+  };
 
   const downloadClick = () => {
     var d = new Date();
@@ -102,19 +122,12 @@ const SpiralReport = props => {
         ".pdf",
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2 },
-      jsPDF: { unit: "cm", format: "A4", orientation: "portrait" }
+      jsPDF: { unit: "cm", format: "A4", orientation: "portrait" },
     };
     var element = document.getElementById("print");
-    html2pdf()
-      .set(opt)
-      .from(element)
-      .save();
-    Swal.fire(
-      'Saved!',
-      `report saved successfully`,
-      'success'
-    )
-    setPrintModalOpen(false)
+    html2pdf().set(opt).from(element).save();
+    Swal.fire("Saved!", `report saved successfully`, "success");
+    setPrintModalOpen(false);
   };
 
   return (
@@ -123,28 +136,61 @@ const SpiralReport = props => {
         <h3>Spiral summary report</h3>
         <div className="mt-2 mb-2">
           From {startDate.toLocaleDateString()} To:
-                            {endDate.toLocaleDateString()}<button className="ml-2 btn btn-primary btn-sm" onClick={() => setDatePickerOpen(true)}><EditIcon style={{ fontSize: 20 }} /></button> &nbsp; <button className="btn btn-sm btn-primary" onClick={getSales}  ><RefreshIcon style={{ fontSize: 20 }}></RefreshIcon></button>
-          {isDatePickerOPen && <DateRangePicker label="dashboard" default="week" onClose={() => setDatePickerOpen(false)} onSave={handleDatePickerSaved}></DateRangePicker>}
-          <button onClick={() => setPrintModalOpen(true)} className="btn btn-primary ml-5">Print</button>
+          {endDate.toLocaleDateString()}
+          <button
+            className="ml-2 btn btn-primary btn-sm"
+            onClick={() => setDatePickerOpen(true)}
+          >
+            <EditIcon style={{ fontSize: 20 }} />
+          </button>{" "}
+          &nbsp;{" "}
+          <button className="btn btn-sm btn-primary" onClick={getSales}>
+            Refresh
+            <RefreshIcon style={{ fontSize: 20 }}></RefreshIcon>
+          </button>
+          {isDatePickerOPen && (
+            <DateRangePicker
+              label="dashboard"
+              default="week"
+              onClose={() => setDatePickerOpen(false)}
+              onSave={handleDatePickerSaved}
+            ></DateRangePicker>
+          )}
+          <button
+            onClick={() => setPrintModalOpen(true)}
+            className="btn btn-primary ml-5"
+          >
+            Print
+          </button>
         </div>
-
       </div>
-
 
       <Modal
         isOpen={isPrintModalOpen}
         contentLabel="Dashboard"
         style={customStyles}
-        shouldCloseOnOverlayClick={false}>
+        shouldCloseOnOverlayClick={false}
+      >
         <div>
           <div className="text-cent mt-3">
-            <button onClick={() => setPrintModalOpen(false)} className="btn btn-danger">Close</button> &nbsp; &nbsp;
-            <button onClick={downloadClick} className="btn btn-primary">Print</button>
+            <button
+              onClick={() => setPrintModalOpen(false)}
+              className="btn btn-danger"
+            >
+              Close
+            </button>{" "}
+            &nbsp; &nbsp;
+            <button onClick={downloadClick} className="btn btn-primary">
+              Print
+            </button>
           </div>
           <div id="print">
             <div className="text-center mb-2">
               <h4>Office and Communication House Limbe</h4>
-              <span>Spiral report: {startDate.toLocaleDateString()} - {endDate.toLocaleTimeString()}</span>
+              <span>
+                Spiral report: {startDate.toLocaleDateString()} -{" "}
+                {endDate.toLocaleTimeString()}
+              </span>
             </div>
             <table className="table table-bordered table-sm">
               <thead>
@@ -158,15 +204,17 @@ const SpiralReport = props => {
               </thead>
               <tbody>
                 {spiralData.map((spiral, i) => {
-                  return <tr key={i}>
-                    <td>{i + 1}</td>
-                    <td>{new Date(spiral.created_at).toLocaleString()}</td>
-                    <td>{spiral.qty}</td>
-                    <td>{spiral.total}</td>
-                    <td>{spiral.retailPrice}</td>
-                    <td>{spiral.discount}</td>
-                    <td>{spiral.isWholeSale ? 'Yes' : 'No'}</td>
-                  </tr>
+                  return (
+                    <tr key={i}>
+                      <td>{i + 1}</td>
+                      <td>{new Date(spiral.created_at).toLocaleString()}</td>
+                      <td>{spiral.qty}</td>
+                      <td>{spiral.total}</td>
+                      <td>{spiral.retailPrice}</td>
+                      <td>{spiral.discount}</td>
+                      <td>{spiral.isWholeSale ? "Yes" : "No"}</td>
+                    </tr>
+                  );
                 })}
               </tbody>
             </table>
@@ -197,7 +245,9 @@ const SpiralReport = props => {
           {
             Header: "Date",
             Cell: (row) => {
-              return <div>{new Date(row.original.created_at).toLocaleString()}</div>;
+              return (
+                <div>{new Date(row.original.created_at).toLocaleString()}</div>
+              );
             },
           },
           {
@@ -220,14 +270,13 @@ const SpiralReport = props => {
           {
             Header: "Whole Sale",
             Cell: (row) => {
-              return <div>{row.original.isWholeSale ? 'Yes' : 'No'}</div>;
+              return <div>{row.original.isWholeSale ? "Yes" : "No"}</div>;
             },
           },
-        ]} />
+        ]}
+      />
     </div>
   );
 };
-
-
 
 export default SpiralReport;

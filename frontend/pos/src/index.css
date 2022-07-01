@@ -1,20 +1,20 @@
 :root {
-  --primary-clr: #2980B9;
-  --secondary-clr: #EBEBEB;
+  --primary-clr: #2980b9;
+  --secondary-clr: #ebebeb;
   --danger-clr: #dc3545;
 }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
 
@@ -31,7 +31,7 @@ code {
 }
 
 .band-header {
-  background-color: #EBEBEB;
+  background-color: #ebebeb;
   padding: 0.5rem 0rem;
 }
 
@@ -125,7 +125,7 @@ th {
   background-color: white !important;
   color: black !important;
 }
- .my-container-sm {
+.my-container-sm {
   padding-left: 10rem !important;
   padding-right: 10rem !important;
 }
@@ -133,6 +133,10 @@ th {
   padding-top: 63px;
 }
 .my-container-xsm {
-    padding-left: 5rem !important;
+  padding-left: 5rem !important;
   padding-right: 5rem !important;
+}
+
+.swal2-actions.swal2-loading .swal2-styled.swal2-confirm {
+  border-color: #2980b9 !important;
 }

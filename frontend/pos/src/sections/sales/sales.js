@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { DateRangePicker } from '../../components'
-import EditIcon from '@material-ui/icons/Edit';
-import ReactTable from 'react-table';
+import React, { useEffect, useState } from "react";
+import { DateRangePicker } from "../../components";
+import EditIcon from "@material-ui/icons/Edit";
+import ReactTable from "react-table";
 import apis from "../../apis/apis";
-import RefreshIcon from '@material-ui/icons/Refresh';
+import RefreshIcon from "@material-ui/icons/Refresh";
 import html2pdf from "html2pdf.js";
-import Swal from 'sweetalert2';
-import Modal from 'react-modal';
-
+import Swal from "sweetalert2";
+import Modal from "react-modal";
 
 const customStyles = {
   content: {
@@ -19,50 +18,60 @@ const customStyles = {
     height: "90%",
     marginRight: "-50%",
     transform: "translate(-50%, -50%)",
-    borderRadius: "10px"
-  }
+    borderRadius: "10px",
+  },
 };
 
-const SalesReport = props => {
-
-  const currentDate = new Date()
-  const startMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0)
-  const [startDate, setStartDate] = useState(startMonth)
-  const [endDate, setEndDate] = useState(currentDate)
-  const [rangeType, setRangeType] = useState("day")
-  const [isDatePickerOPen, setDatePickerOpen] = useState(false)
-  const [saleData, setSaleData] = useState([])
-  const [isPrintModalOpen, setPrintModalOpen] = useState(false)
-  const [totalSale, setTotalSale] = useState(0)
-  const [totalCost, setTotalCost] = useState(0)
-  const [totalProfit, setTotalProfit] = useState(0)
+const SalesReport = (props) => {
+  const currentDate = new Date();
+  const startMonth = new Date(
+    currentDate.getFullYear(),
+    currentDate.getMonth(),
+    0
+  );
+  const [startDate, setStartDate] = useState(startMonth);
+  const [endDate, setEndDate] = useState(currentDate);
+  const [rangeType, setRangeType] = useState("day");
+  const [isDatePickerOPen, setDatePickerOpen] = useState(false);
+  const [saleData, setSaleData] = useState([]);
+  const [isPrintModalOpen, setPrintModalOpen] = useState(false);
+  const [totalSale, setTotalSale] = useState(0);
+  const [totalCost, setTotalCost] = useState(0);
+  const [totalProfit, setTotalProfit] = useState(0);
 
   const handleDatePickerSaved = (dates) => {
-    let _startDate = new Date(dates.start)
-    let _endDate = new Date(dates.end)
-    if (dates.type === 'year') {
-      _startDate = new Date(dates.start, 0)
-      _endDate = new Date(dates.end, 11)
+    let _startDate = new Date(dates.start);
+    let _endDate = new Date(dates.end);
+    if (dates.type === "year") {
+      _startDate = new Date(dates.start, 0);
+      _endDate = new Date(dates.end, 11);
     }
     if (dates.type === "day") {
       _startDate = new Date(`${dates.start}T${dates.startTime}`);
       _endDate = new Date(`${dates.end}T${dates.endTime}`);
     }
     if (dates.type === "month") {
-      _startDate = new Date(dates.start.getFullYear(), dates.start.getMonth(), 1)
+      _startDate = new Date(
+        dates.start.getFullYear(),
+        dates.start.getMonth(),
+        1
+      );
 
-      _endDate = new Date(dates.start.getFullYear(), dates.start.getMonth(), 31)
-
+      _endDate = new Date(
+        dates.start.getFullYear(),
+        dates.start.getMonth(),
+        31
+      );
     }
-    setStartDate(_startDate)
-    setEndDate(_endDate)
-    setRangeType(dates.type)
-    setDatePickerOpen(false)
-  }
+    setStartDate(_startDate);
+    setEndDate(_endDate);
+    setRangeType(dates.type);
+    setDatePickerOpen(false);
+  };
 
   useEffect(() => {
-    getSales()
-  }, [])
+    getSales();
+  }, []);
 
   function pad(num, size) {
     var s = num + "";
@@ -71,37 +80,50 @@ const SalesReport = props => {
   }
 
   const getSales = async () => {
-    let _totalSale = 0
-    let _totalProfit = 0
-    let _totalCost = 0
-    const res = await apis.saleApi.sales()
-    let sales = res.filter(sale => {
-      let saleDate = new Date(sale.created_at)
-      return startDate <= saleDate && saleDate <= endDate
-    }).sort((a, b) => {
-      var aDate = new Date(a.created_at)
-      var bDate = new Date(b.created_at)
-      return bDate.getTime() - aDate.getTime()
-    })
-    sales = sales.map(sale => {
-      let qty = 0
-      let cost = 0
-      sale.lineItems.forEach(li => {
-        qty += li.qty
-        cost += li.qty * li.item.purchasePrice
+    Swal.fire({
+      title: "",
+      text: `Crunching data... `,
+      icon: "info",
+      showConfirmButton: false,
+    });
+    Swal.showLoading();
+    let _totalSale = 0;
+    let _totalProfit = 0;
+    let _totalCost = 0;
+    const res = await apis.saleApi.sales();
+    let sales = res
+      .filter((sale) => {
+        let saleDate = new Date(sale.created_at);
+        return startDate <= saleDate && saleDate <= endDate;
       })
-      sale.qty = qty
-      sale.cost = cost
-      sale.profit = sale.total - sale.cost
-      _totalSale += sale.total
-      _totalProfit += sale.profit
-      _totalCost += sale.cost
-      return sale
-    })
-    setSaleData(sales)
-    setTotalSale(_totalSale)
-    setTotalProfit(_totalProfit)
-  }
+      .sort((a, b) => {
+        var aDate = new Date(a.created_at);
+        var bDate = new Date(b.created_at);
+        return bDate.getTime() - aDate.getTime();
+      });
+    sales = sales.map((sale) => {
+      let qty = 0;
+      let cost = 0;
+      if (!sale.lineItems) {
+        sale.lineItems = [];
+      }
+      sale.lineItems.forEach((li) => {
+        qty += li.qty;
+        cost += li.qty * li.item.purchasePrice;
+      });
+      sale.qty = qty;
+      sale.cost = cost;
+      sale.profit = sale.total - sale.cost;
+      _totalSale += sale.total;
+      _totalProfit += sale.profit;
+      _totalCost += sale.cost;
+      return sale;
+    });
+    setSaleData(sales);
+    setTotalSale(_totalSale);
+    setTotalProfit(_totalProfit);
+    Swal.close();
+  };
 
   const downloadClick = () => {
     var d = new Date();
@@ -115,19 +137,12 @@ const SalesReport = props => {
         ".pdf",
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2 },
-      jsPDF: { unit: "cm", format: "A4", orientation: "portrait" }
+      jsPDF: { unit: "cm", format: "A4", orientation: "portrait" },
     };
     var element = document.getElementById("print");
-    html2pdf()
-      .set(opt)
-      .from(element)
-      .save();
-    Swal.fire(
-      'Saved!',
-      `report saved successfully`,
-      'success'
-    )
-    setPrintModalOpen(false)
+    html2pdf().set(opt).from(element).save();
+    Swal.fire("Saved!", `report saved successfully`, "success");
+    setPrintModalOpen(false);
   };
 
   return (
@@ -136,28 +151,61 @@ const SalesReport = props => {
         <h3>Sales summary report</h3>
         <div className="mt-2 mb-2">
           From {startDate.toLocaleDateString()} To:
-                            {endDate.toLocaleDateString()}<button className="ml-2 btn btn-primary btn-sm" onClick={() => setDatePickerOpen(true)}><EditIcon style={{ fontSize: 20 }} /></button> &nbsp; <button className="btn btn-sm btn-primary" onClick={getSales}  ><RefreshIcon style={{ fontSize: 20 }}></RefreshIcon></button>
-          {isDatePickerOPen && <DateRangePicker label="dashboard" default="week" onClose={() => setDatePickerOpen(false)} onSave={handleDatePickerSaved}></DateRangePicker>}
-          <button onClick={() => setPrintModalOpen(true)} className="btn btn-primary ml-5">Print</button>
+          {endDate.toLocaleDateString()}
+          <button
+            className="ml-2 btn btn-primary btn-sm"
+            onClick={() => setDatePickerOpen(true)}
+          >
+            <EditIcon style={{ fontSize: 20 }} />
+          </button>{" "}
+          &nbsp;{" "}
+          <button className="btn btn-sm btn-primary" onClick={getSales}>
+            Refresh
+            <RefreshIcon style={{ fontSize: 20 }}></RefreshIcon>
+          </button>
+          {isDatePickerOPen && (
+            <DateRangePicker
+              label="dashboard"
+              default="week"
+              onClose={() => setDatePickerOpen(false)}
+              onSave={handleDatePickerSaved}
+            ></DateRangePicker>
+          )}
+          <button
+            onClick={() => setPrintModalOpen(true)}
+            className="btn btn-primary ml-5"
+          >
+            Print
+          </button>
         </div>
-
       </div>
-
 
       <Modal
         isOpen={isPrintModalOpen}
         contentLabel="Dashboard"
         style={customStyles}
-        shouldCloseOnOverlayClick={false}>
+        shouldCloseOnOverlayClick={false}
+      >
         <div>
           <div className="text-cent mt-3">
-            <button onClick={() => setPrintModalOpen(false)} className="btn btn-danger">Close</button> &nbsp; &nbsp;
-            <button onClick={downloadClick} className="btn btn-primary">Print</button>
+            <button
+              onClick={() => setPrintModalOpen(false)}
+              className="btn btn-danger"
+            >
+              Close
+            </button>{" "}
+            &nbsp; &nbsp;
+            <button onClick={downloadClick} className="btn btn-primary">
+              Print
+            </button>
           </div>
           <div id="print">
             <div className="text-center mb-2">
               <h4>Office and Communication House Limbe</h4>
-              <span>Sales report: {startDate.toLocaleDateString()} - {endDate.toLocaleTimeString()}</span>
+              <span>
+                Sales report: {startDate.toLocaleDateString()} -{" "}
+                {endDate.toLocaleTimeString()}
+              </span>
             </div>
             <table className="table table-bordered table-sm">
               <thead>
@@ -172,23 +220,31 @@ const SalesReport = props => {
               </thead>
               <tbody>
                 {saleData.map((sale, i) => {
-                  return <tr key={i}>
-                    <td>{i + 1}</td>
-                    <td>{new Date(sale.created_at).toLocaleString()}</td>
-                    <td>{sale.qty}</td>
-                    <td>{sale.total}</td>
-                    <td>{sale.cost}</td>
-                    <td>{sale.profit}</td>
-                    <td>{sale.commet}</td>
-                    <td>{sale.cashier.name}</td>
-                  </tr>
+                  return (
+                    <tr key={i}>
+                      <td>{i + 1}</td>
+                      <td>{new Date(sale.created_at).toLocaleString()}</td>
+                      <td>{sale.qty}</td>
+                      <td>{sale.total}</td>
+                      <td>{sale.cost}</td>
+                      <td>{sale.profit}</td>
+                      <td>{sale.commet}</td>
+                      <td>{sale.cashier.name}</td>
+                    </tr>
+                  );
                 })}
               </tbody>
             </table>
             <div className="text-center mt-3 mb-2">
-              <div>Total gross sale: <b>{totalSale} XAF</b></div>
-              <div>Total cost: <b>{totalCost} XAF</b></div>
-              <div>Total gross profit: <b>{totalProfit} XAF</b></div>
+              <div>
+                Total gross sale: <b>{totalSale} XAF</b>
+              </div>
+              <div>
+                Total cost: <b>{totalCost} XAF</b>
+              </div>
+              <div>
+                Total gross profit: <b>{totalProfit} XAF</b>
+              </div>
             </div>
           </div>
         </div>
@@ -217,7 +273,9 @@ const SalesReport = props => {
           {
             Header: "Date",
             Cell: (row) => {
-              return <div>{new Date(row.original.created_at).toLocaleString()}</div>;
+              return (
+                <div>{new Date(row.original.created_at).toLocaleString()}</div>
+              );
             },
           },
           {
@@ -247,16 +305,21 @@ const SalesReport = props => {
               return <div>{row.original.cashier.name}</div>;
             },
           },
-        ]} />
+        ]}
+      />
       <div className="text-center mt-3">
-        <div>Total gross sale: <b>{totalSale} XAF</b></div>
-        <div>Total cost: <b>{totalCost} XAF</b></div>
-        <div>Total gross profit: <b>{totalProfit} XAF</b></div>
+        <div>
+          Total gross sale: <b>{totalSale} XAF</b>
+        </div>
+        <div>
+          Total cost: <b>{totalCost} XAF</b>
+        </div>
+        <div>
+          Total gross profit: <b>{totalProfit} XAF</b>
+        </div>
       </div>
     </div>
   );
 };
-
-
 
 export default SalesReport;

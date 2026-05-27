@@ -28,7 +28,6 @@ var (
 	validate *validator.Validate
 )
 
-// Auth structure
 type Report struct {
 	name     string
 	handlers []*plugins.PluginHandler

@@ -1,6 +1,7 @@
 package sale
 
 import (
+	"errors"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -24,6 +25,7 @@ import (
 	"github.com/acha-bill/pos/plugins"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -401,7 +403,38 @@ func create(c echo.Context) error {
 	return c.JSON(http.StatusCreated, created)
 }
 func list(c echo.Context) error {
-	sales, err := saleService.FindAll()
+	if c.QueryParam("startDate") == "" || c.QueryParam("endDate") == "" {
+		sales, err := saleService.FindAll()
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, errResponse{
+				Error: err.Error(),
+			})
+		}
+		return c.JSON(http.StatusOK, sales)
+	}
+
+	var start bson.M
+	var end bson.M
+	if c.QueryParam("startDate") != "" {
+		i, err := strconv.ParseInt(c.QueryParam("startDate"), 10, 64)
+		if err != nil {
+			return errors.New("invalid start date")
+		}
+		start = bson.M{"created_at": bson.M{"$gte": time.Unix(i/1000, 0)}}
+	}
+	if c.QueryParam("endDate") != "" {
+		i, err := strconv.ParseInt(c.QueryParam("endDate"), 10, 64)
+		if err != nil {
+			return errors.New("invalid end date")
+		}
+		end = bson.M{"created_at": bson.M{"$lte": time.Unix(i/1000, 0)}}
+	}
+	sales, err := saleService.Find(bson.M{
+		"$and": []bson.M{
+			start,
+			end,
+		},
+	})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, errResponse{
 			Error: err.Error(),

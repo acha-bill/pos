@@ -88,11 +88,7 @@ const PrintDetailsReport = (props) => {
     });
     Swal.showLoading();
     let _totalSale = 0;
-    const res = await apis.saleApi.sales();
-    let sales = res.filter((sale) => {
-      let saleDate = new Date(sale.created_at);
-      return startDate <= saleDate && saleDate <= endDate;
-    });
+    const sales = await apis.saleApi.sales(startDate.getTime(), endDate.getTime());
     let items = [];
     sales.forEach((sale) => {
       if (!sale.lineItems) {

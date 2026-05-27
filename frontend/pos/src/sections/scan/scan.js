@@ -87,13 +87,7 @@ const ScanReport = (props) => {
     let scans = [];
     let date = "";
 
-    const res = await apis.saleApi.sales();
-    let sales = res.filter((sale) => {
-      let saleDate = new Date(sale.created_at);
-      date = startDate <= saleDate && saleDate <= endDate;
-      return date;
-    });
-
+    const sales = await apis.saleApi.sales(startDate.getTime(), endDate.getTime());
     sales.forEach((sale) => {
       if (!sale.lineItems) {
         sale.lineItems = [];

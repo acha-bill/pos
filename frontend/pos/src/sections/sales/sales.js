@@ -85,17 +85,14 @@ const SalesReport = (props) => {
       text: `Crunching data... `,
       icon: "info",
       showConfirmButton: false,
+      allowOutsideClick: false,
     });
     Swal.showLoading();
     let _totalSale = 0;
     let _totalProfit = 0;
     let _totalCost = 0;
-    const res = await apis.saleApi.sales();
-    let sales = res
-      .filter((sale) => {
-        let saleDate = new Date(sale.created_at);
-        return startDate <= saleDate && saleDate <= endDate;
-      })
+    let sales = await apis.saleApi.sales(startDate.getTime(), endDate.getTime());
+    sales = sales
       .sort((a, b) => {
         var aDate = new Date(a.created_at);
         var bDate = new Date(b.created_at);
@@ -110,18 +107,20 @@ const SalesReport = (props) => {
       sale.lineItems.forEach((li) => {
         qty += li.qty;
         cost += li.qty * li.item.purchasePrice;
+        console.log("item cost:", cost)
       });
       sale.qty = qty;
       sale.cost = cost;
       sale.profit = sale.total - sale.cost;
       _totalSale += sale.total;
-      _totalProfit += sale.profit;
       _totalCost += sale.cost;
       return sale;
     });
+    _totalProfit = _totalSale - _totalCost;
     setSaleData(sales);
     setTotalSale(_totalSale);
     setTotalProfit(_totalProfit);
+    setTotalCost(_totalCost)
     Swal.close();
   };
 

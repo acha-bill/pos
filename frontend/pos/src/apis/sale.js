@@ -3,9 +3,9 @@ export default class SaleApi {
   constructor(api) {
     this.api = api
   }
-  async sales() {
+  async sales(startDate = "", endDate = "") {
     try {
-      let res = await this.api.get(`${baseUrl}/`)
+      let res = await this.api.get(`${baseUrl}/?startDate=${startDate}&endDate=${endDate}`)
       return res.data
     } catch (e) {
       throw e

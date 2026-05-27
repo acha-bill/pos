@@ -129,17 +129,9 @@ const Dashboard = () => {
       _endDate = new Date(`${dates.end}T${dates.endTime}`);
     }
     if (dates.type === "month") {
-      _startDate = new Date(
-        dates.start.getFullYear(),
-        dates.start.getMonth(),
-        1
-      );
-
-      _endDate = new Date(
-        dates.start.getFullYear(),
-        dates.start.getMonth(),
-        31
-      );
+      _startDate = new Date(dates.start);
+      _endDate = new Date(dates.end);
+      _endDate = new Date(_endDate.getFullYear(), _endDate.getMonth() + 1, 0);
     }
     setStartDate(_startDate);
     setEndDate(_endDate);
@@ -159,8 +151,7 @@ const Dashboard = () => {
       showConfirmButton: false,
     });
     Swal.showLoading();
-    await getSales();
-    await getSelling();
+    await Promise.all([getSales(), getSelling()]);
     Swal.close();
   };
 

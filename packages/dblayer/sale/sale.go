@@ -2,6 +2,7 @@ package sale
 
 import (
 	"context"
+	"time"
 
 	"github.com/acha-bill/pos/models"
 	"github.com/acha-bill/pos/packages/mongodb"
@@ -35,6 +36,15 @@ func Find(filter interface{}) (rows []*models.Sale, err error) {
 	return
 }
 
+func FindByCreatedAtRange(start time.Time, end time.Time) (rows []*models.Sale, err error) {
+	return Find(bson.M{
+		"created_at": bson.M{
+			"$gte": start,
+			"$lte": end,
+		},
+	})
+}
+
 func Create(item models.Sale) (created *models.Sale, err error) {
 	res, err := collection().InsertOne(ctx, item)
 	if err != nil {
@@ -46,17 +56,11 @@ func Create(item models.Sale) (created *models.Sale, err error) {
 }
 
 func FindByCustomerID(id string) (res []*models.Sale, err error) {
-	res = []*models.Sale{}
-	sales, err := FindAll()
+	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return
 	}
-	for _, sale := range sales {
-		if sale.Customer.ID.Hex() == id {
-			res = append(res, sale)
-		}
-	}
-	return
+	return Find(bson.D{primitive.E{Key: "customer._id", Value: objectId}})
 }
 
 func FindById(id string) (item *models.Sale, err error) {
@@ -98,6 +102,7 @@ func filterRows(filter interface{}) ([]*models.Sale, error) {
 	if err != nil {
 		return rows, err
 	}
+	defer cur.Close(ctx)
 
 	for cur.Next(ctx) {
 		var u models.Sale
@@ -112,9 +117,6 @@ func filterRows(filter interface{}) ([]*models.Sale, error) {
 	if err := cur.Err(); err != nil {
 		return rows, err
 	}
-
-	// once exhausted, close the cursor
-	_ = cur.Close(ctx)
 
 	if len(rows) == 0 {
 		return rows, nil

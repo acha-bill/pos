@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/acha-bill/pos/plugins/printer"
 
@@ -84,8 +85,9 @@ func instance() *echo.Echo {
 	}))
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
+		AllowOrigins: getAllowedOrigins(),
 		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 	}))
 
 	//enable debugging
@@ -124,6 +126,21 @@ func instance() *echo.Echo {
 	return e
 }
 
+func getAllowedOrigins() []string {
+	origins := strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), ",")
+	res := make([]string, 0, len(origins))
+	for _, origin := range origins {
+		origin = strings.TrimSpace(origin)
+		if origin != "" {
+			res = append(res, origin)
+		}
+	}
+	if len(res) > 0 {
+		return res
+	}
+	return []string{"http://localhost:3000", "http://127.0.0.1:3000"}
+}
+
 func fromFile(e echo.Context) error {
 	reqPath := e.Request().URL.Path
 	bytes, err := appBox.Find(reqPath)
@@ -133,7 +150,7 @@ func fromFile(e echo.Context) error {
 
 	parts := strings.Split(reqPath, ".")
 	ext := ""
-	if len(parts) >= 0 {
+	if len(parts) > 1 {
 		ext = "." + parts[len(parts)-1]
 	}
 	mimeType := mime.TypeByExtension(ext)
@@ -149,9 +166,14 @@ func indexRoute(e echo.Context) error {
 		}
 		return e.HTMLBlob(http.StatusOK, indexHTML)
 	}
-	res, err := http.Get("http://127.0.0.1:3000" + e.Request().URL.Path)
+	client := http.Client{Timeout: 10 * time.Second}
+	res, err := client.Get("http://127.0.0.1:3000" + e.Request().URL.Path)
 	if err != nil {
 		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode >= http.StatusBadRequest {
+		return echo.NewHTTPError(res.StatusCode, res.Status)
 	}
 	devIndexHTML, err := ioutil.ReadAll(res.Body)
 	if err != nil {

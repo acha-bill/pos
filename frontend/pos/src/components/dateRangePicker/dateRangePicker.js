@@ -157,8 +157,8 @@ class DateRangePicker extends PureComponent {
             obj['start'] = new Date(this.getDateOfWeek(this.state.week)).toISOString().split('T')[0];
             obj['end'] = new Date(this.addDays(this.getDateOfWeek(this.state.week), 6)).toISOString().split('T')[0];
         } else if (this.state.selectedRangeType.value === 'month') {
-            obj['start'] = new Date(this.state.startMonth + '-01');
-            obj['end'] = new Date(this.state.endMonth + '-01');
+            obj['start'] = new Date(this.state.startMonth + '-01').toISOString().split('T')[0];
+            obj['end'] = new Date(this.state.endMonth + '-01').toISOString().split('T')[0];
         } else {
             obj['start'] = this.state.startYear;
             obj['end'] = this.state.endYear;
@@ -196,7 +196,7 @@ class DateRangePicker extends PureComponent {
         return (
             <Modal
                 isOpen={true}
-                onRequestClose={this.closeModal}
+                onRequestClose={this.close}
                 contentLabel="Dashboard"
                 style={datepickerStyle}
                 shouldCloseOnOverlayClick={false}

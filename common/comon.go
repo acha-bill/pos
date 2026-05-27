@@ -4,10 +4,12 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type JWTCustomClaims struct {
@@ -44,4 +46,24 @@ func IsDevelopment() bool {
 func GetMD5Hash(text string) string {
 	hash := md5.Sum([]byte(text))
 	return hex.EncodeToString(hash[:])
+}
+
+func HashPassword(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
+}
+
+func CheckPassword(password string, hash string) bool {
+	if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil {
+		return true
+	}
+	return IsLegacyMD5Hash(hash) && GetMD5Hash(password) == hash
+}
+
+func IsLegacyMD5Hash(hash string) bool {
+	ok, _ := regexp.MatchString("^[a-f0-9]{32}$", hash)
+	return ok
 }

@@ -297,7 +297,7 @@ func create(c echo.Context) error {
 		})
 	}
 
-	if req.Paid-req.Total != req.Change {
+	if !amountsEqual(req.Paid-req.Total, req.Change) {
 		return c.JSON(http.StatusBadRequest, errResponse{
 			Error: "Change and paid do not sum up",
 		})
@@ -323,6 +323,16 @@ func create(c echo.Context) error {
 					Error: "item not found",
 				})
 			}
+			if item == nil {
+				return c.JSON(http.StatusNotFound, errResponse{
+					Error: "item not found",
+				})
+			}
+			if item.Quantity < int(line.Quantity) {
+				return c.JSON(http.StatusBadRequest, errResponse{
+					Error: "insufficient stock for item " + item.Name,
+				})
+			}
 			li.Item = *item
 			li.IsWholeSale = line.IsWholeSale
 			item.Quantity = item.Quantity - int(line.Quantity)
@@ -334,6 +344,11 @@ func create(c echo.Context) error {
 					Error: "printer not found",
 				})
 			}
+			if printer == nil {
+				return c.JSON(http.StatusNotFound, errResponse{
+					Error: "printer not found",
+				})
+			}
 			li.Printer = *printer
 			li.PrintDetail = models.PrintDetail{
 				Color:       line.PrintDetail.Color,
@@ -341,18 +356,16 @@ func create(c echo.Context) error {
 				Description: line.PrintDetail.Description,
 			}
 		default:
-			if err != nil {
-				return c.JSON(http.StatusBadRequest, errResponse{
-					Error: "invalid line type",
-				})
-			}
+			return c.JSON(http.StatusBadRequest, errResponse{
+				Error: "invalid line type",
+			})
 		}
 
 		lineItems = append(lineItems, li)
 		total += line.Total
 	}
 
-	if total != req.Total {
+	if !amountsEqual(total, req.Total) {
 		return c.JSON(http.StatusBadRequest, errResponse{
 			Error: "Incorrect total",
 		})
@@ -361,14 +374,22 @@ func create(c echo.Context) error {
 	if customer != nil {
 		if req.Change < 0 {
 			customer.Debt = customer.Debt + math.Abs(req.Change)
-			_ = customerService.UpdateById(customer.ID.Hex(), *customer)
+			if err := customerService.UpdateById(customer.ID.Hex(), *customer); err != nil {
+				return c.JSON(http.StatusBadRequest, errResponse{
+					Error: err.Error(),
+				})
+			}
 		}
 	} else {
 		customer = &models.Customer{}
 	}
 
 	for _, item := range updatedItems {
-		_ = itemService.UpdateById(item.ID.Hex(), *item)
+		if err := itemService.UpdateById(item.ID.Hex(), *item); err != nil {
+			return c.JSON(http.StatusBadRequest, errResponse{
+				Error: err.Error(),
+			})
+		}
 	}
 	created, err := saleService.Create(models.Sale{
 		ID:        primitive.NewObjectID(),
@@ -390,10 +411,15 @@ func create(c echo.Context) error {
 	}
 
 	receipt := formatSale(created)
-	dir, _ := os.Getwd()
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Info("Error getting work dir for receipt: ", err.Error())
+		return c.JSON(http.StatusCreated, created)
+	}
 	receiptDir := dir + "/receipts"
-	if _, err := os.Stat(receiptDir); os.IsNotExist(err) {
-		_ = os.Mkdir(receiptDir, 0777)
+	if err := os.MkdirAll(receiptDir, 0755); err != nil {
+		log.Info("Error creating receipt dir: ", err.Error())
+		return c.JSON(http.StatusCreated, created)
 	}
 	err = ioutil.WriteFile(receiptDir+"/"+created.ID.Hex()+".txt", []byte(receipt), 0644)
 	if err != nil {
@@ -401,6 +427,10 @@ func create(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusCreated, created)
+}
+
+func amountsEqual(a float64, b float64) bool {
+	return math.Abs(a-b) < 0.01
 }
 func list(c echo.Context) error {
 	if c.QueryParam("startDate") == "" || c.QueryParam("endDate") == "" {

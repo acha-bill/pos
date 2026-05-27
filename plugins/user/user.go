@@ -93,7 +93,10 @@ func Seed() (res []*models.User, err error) {
 
 	if users, err := userService.FindAll(); err == nil && len(users) == 0 {
 		for _, u := range defaultUsers {
-			hashedPassword := common.GetMD5Hash(u.Password)
+			hashedPassword, err := common.HashPassword(u.Password)
+			if err != nil {
+				return res, err
+			}
 			_u, _ := userService.Create(models.User{
 				ID:        primitive.NewObjectID(),
 				Username:  u.Username,
@@ -204,7 +207,12 @@ func update(c echo.Context) error {
 		user.Username = req.Username
 	}
 	if req.Password != "" {
-		hashedPassword := common.GetMD5Hash(req.Password)
+		hashedPassword, err := common.HashPassword(req.Password)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, errorResponse{
+				Error: err.Error(),
+			})
+		}
 		user.Password = hashedPassword
 	}
 	user.UpdatedAt = time.Now()
@@ -318,7 +326,12 @@ func create(c echo.Context) error {
 		})
 	}
 
-	hashedPassword := common.GetMD5Hash(req.Password)
+	hashedPassword, err := common.HashPassword(req.Password)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, errorResponse{
+			Error: err.Error(),
+		})
+	}
 	var roles []primitive.ObjectID
 	for _, roleID := range req.Roles {
 		_r, err := primitive.ObjectIDFromHex(roleID)

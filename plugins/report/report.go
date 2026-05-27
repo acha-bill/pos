@@ -1,6 +1,7 @@
 package report
 
 import (
+	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
@@ -174,10 +175,30 @@ type sellingResponse struct {
 }
 
 func sellingItems(c echo.Context) error {
-	items, _ := itemService.FindAll()
+	items, err := itemService.FindAll()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, errorResponse{
+			Error: err.Error(),
+		})
+	}
+	sales, err := salesForOptionalRange(c)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, errorResponse{
+			Error: err.Error(),
+		})
+	}
+	itemTotals := make(map[string]float64)
+	for _, sale := range sales {
+		for _, li := range sale.LineItems {
+			if !li.Item.ID.IsZero() {
+				itemTotals[li.Item.ID.Hex()] += li.Total
+			}
+		}
+	}
+
 	itemMap := make(map[*models.Item]float64)
 	for _, item := range items {
-		itemMap[item] = getSalesForItem(item)
+		itemMap[item] = itemTotals[item.ID.Hex()]
 	}
 
 	sort.SliceStable(items, func(i, j int) bool {
@@ -217,121 +238,10 @@ func sellingItems(c echo.Context) error {
 	})
 }
 
-func getSalesForItem(item *models.Item) float64 {
-	sales, _ := saleService.FindAll()
-	grossSale := 0.0
-	for _, sale := range sales {
-		for _, li := range sale.LineItems {
-			if li.Item.ID.Hex() == item.ID.Hex() {
-				grossSale += li.Total
-			}
-		}
-	}
-	return grossSale
-}
-
 func salesReport(c echo.Context) error {
-	startStr := c.QueryParam("start")
-	endStr := c.QueryParam("end")
-	rangeType := c.QueryParam("rangeType")
-	if startStr == "" || endStr == "" || rangeType == "" {
-		return c.JSON(http.StatusBadRequest, errorResponse{
-			Error: "start, end and rangeType are required",
-		})
-	}
-	itemID := c.QueryParam("itemId")
-	categoryID := c.QueryParam("categoryID")
-	start, err := strconv.ParseInt(startStr, 10, 64)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, errorResponse{
-			Error: err.Error(),
-		})
-	}
-	end, err := strconv.ParseInt(endStr, 10, 64)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, errorResponse{
-			Error: err.Error(),
-		})
-	}
-	timeLabels := getTimeLabels(start*1000000, end*1000000, rangeType)
-	salesData := make(map[time.Time]float64)
-	profitData := make(map[time.Time]float64)
-
-	sales, _ := saleService.FindAll()
-	totalGrossSales := 0.0
-	totalGrossProfit := 0.0
-
-	for _, t := range timeLabels {
-		salesData[t] = 0
-		profitData[t] = 0
-	}
-
-	for _, t := range timeLabels {
-		for _, sale := range sales {
-			if rangeType == "day" {
-				if !isSameDay(sale.CreatedAt, t) {
-					continue
-				}
-			} else if rangeType == "week" {
-				if !isSameWeek(sale.CreatedAt, t) {
-					continue
-				}
-			} else if rangeType == "month" {
-				if !isSameMonth(sale.CreatedAt, t) {
-					continue
-				}
-			} else {
-				if !isSameYear(sale.CreatedAt, t) {
-					continue
-				}
-			}
-
-			isCategory := false
-			if categoryID != "" {
-				for _, li := range sale.LineItems {
-					if li.Item.Category.Hex() == categoryID {
-						salesData[t] += li.Total
-						totalGrossSales += li.Total
-						lineCost := float64(li.Quantity) * li.Item.PurchasePrice
-						profitData[t] += li.Total - lineCost
-						totalGrossProfit += li.Total - lineCost
-						isCategory = true
-					}
-				}
-			}
-			isItem := false
-			if !isCategory && itemID != "" {
-				for _, li := range sale.LineItems {
-					if li.Item.ID.Hex() == itemID {
-						salesData[t] += li.Total
-						totalGrossSales += li.Total
-						lineCost := float64(li.Quantity) * li.Item.PurchasePrice
-						profitData[t] += li.Total - lineCost
-						totalGrossProfit += li.Total - lineCost
-						isItem = true
-					}
-				}
-			}
-			if !isCategory && !isItem {
-				salesData[t] += sale.Total
-				totalGrossSales += sale.Total
-				saleCost := 0.0
-				for _, li := range sale.LineItems {
-					saleCost += float64(li.Quantity) * li.Item.PurchasePrice
-				}
-				profitData[t] += sale.Total - saleCost
-				totalGrossProfit += sale.Total - saleCost
-			}
-		}
-	}
-
-	return c.JSON(http.StatusOK, saleResponse{
-		GrossSales:  totalGrossSales,
-		GrossProfit: totalGrossProfit,
-		SalesData:   salesData,
-		ProfitData:  profitData,
-	})
+	return sales(c)
 }
+
 func sales(c echo.Context) error {
 	startStr := c.QueryParam("start")
 	endStr := c.QueryParam("end")
@@ -341,8 +251,8 @@ func sales(c echo.Context) error {
 			Error: "start, end and rangeType are required",
 		})
 	}
-	itemID := c.QueryParam("itemId")
-	categoryID := c.QueryParam("categoryID")
+	itemID := normalizeFilter(c.QueryParam("itemId"))
+	categoryID := normalizeFilter(c.QueryParam("categoryId"))
 	start, err := strconv.ParseInt(startStr, 10, 64)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, errorResponse{
@@ -355,84 +265,115 @@ func sales(c echo.Context) error {
 			Error: err.Error(),
 		})
 	}
+
+	res, err := buildSalesReport(start, end, rangeType, itemID, categoryID)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, errorResponse{
+			Error: err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, res)
+}
+
+func salesForOptionalRange(c echo.Context) ([]*models.Sale, error) {
+	startStr := c.QueryParam("start")
+	endStr := c.QueryParam("end")
+	if startStr == "" || endStr == "" {
+		return saleService.FindAll()
+	}
+	start, err := strconv.ParseInt(startStr, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	end, err := strconv.ParseInt(endStr, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return saleService.FindByCreatedAtRange(time.Unix(0, start*1000000), time.Unix(0, end*1000000))
+}
+
+func buildSalesReport(start int64, end int64, rangeType string, itemID string, categoryID string) (saleResponse, error) {
 	timeLabels := getTimeLabels(start*1000000, end*1000000, rangeType)
 	salesData := make(map[time.Time]float64)
 	profitData := make(map[time.Time]float64)
+	labelByKey := make(map[string]time.Time)
 
-	sales, _ := saleService.FindAll()
+	sales, err := saleService.FindByCreatedAtRange(time.Unix(0, start*1000000), time.Unix(0, end*1000000))
+	if err != nil {
+		return saleResponse{}, err
+	}
 	totalGrossSales := 0.0
 	totalGrossProfit := 0.0
 
 	for _, t := range timeLabels {
 		salesData[t] = 0
 		profitData[t] = 0
+		labelByKey[reportBucketKey(t, rangeType)] = t
 	}
 
-	for _, t := range timeLabels {
-		for _, sale := range sales {
-			if rangeType == "day" {
-				if !isSameDay(sale.CreatedAt, t) {
-					continue
-				}
-			} else if rangeType == "week" {
-				if !isSameWeek(sale.CreatedAt, t) {
-					continue
-				}
-			} else if rangeType == "month" {
-				if !isSameMonth(sale.CreatedAt, t) {
-					continue
-				}
-			} else {
-				if !isSameYear(sale.CreatedAt, t) {
-					continue
-				}
-			}
-
-			isCategory := false
-			if categoryID != "" {
-				for _, li := range sale.LineItems {
-					if li.Item.Category.Hex() == categoryID {
-						salesData[t] += li.Total
-						totalGrossSales += li.Total
-						lineCost := float64(li.Quantity) * li.Item.PurchasePrice
-						profitData[t] += li.Total - lineCost
-						totalGrossProfit += li.Total - lineCost
-						isCategory = true
-					}
-				}
-			}
-			isItem := false
-			if !isCategory && itemID != "" {
-				for _, li := range sale.LineItems {
-					if li.Item.ID.Hex() == itemID {
-						salesData[t] += li.Total
-						totalGrossSales += li.Total
-						lineCost := float64(li.Quantity) * li.Item.PurchasePrice
-						profitData[t] += li.Total - lineCost
-						totalGrossProfit += li.Total - lineCost
-						isItem = true
-					}
-				}
-			}
-			if !isCategory && !isItem {
-				salesData[t] += sale.Total
-				totalGrossSales += sale.Total
-				saleCost := 0.0
-				for _, li := range sale.LineItems {
-					saleCost += float64(li.Quantity) * li.Item.PurchasePrice
-				}
-				profitData[t] += sale.Total - saleCost
-				totalGrossProfit += sale.Total - saleCost
-			}
+	for _, sale := range sales {
+		label, ok := labelByKey[reportBucketKey(sale.CreatedAt, rangeType)]
+		if !ok {
+			continue
 		}
+		grossSales, grossProfit := saleTotals(sale, itemID, categoryID)
+		salesData[label] += grossSales
+		profitData[label] += grossProfit
+		totalGrossSales += grossSales
+		totalGrossProfit += grossProfit
 	}
 
-	return c.JSON(http.StatusOK, saleResponse{
+	return saleResponse{
 		GrossSales:  totalGrossSales,
 		GrossProfit: totalGrossProfit,
 		SalesData:   salesData,
 		ProfitData:  profitData,
-	})
+	}, nil
+}
+
+func saleTotals(sale *models.Sale, itemID string, categoryID string) (grossSales float64, grossProfit float64) {
+	if categoryID == "" && itemID == "" {
+		cost := 0.0
+		for _, li := range sale.LineItems {
+			cost += float64(li.Quantity) * li.Item.PurchasePrice
+		}
+		return sale.Total, sale.Total - cost
+	}
+
+	for _, li := range sale.LineItems {
+		if categoryID != "" && li.Item.Category.Hex() != categoryID {
+			continue
+		}
+		if categoryID == "" && itemID != "" && li.Item.ID.Hex() != itemID {
+			continue
+		}
+		grossSales += li.Total
+		grossProfit += li.Total - (float64(li.Quantity) * li.Item.PurchasePrice)
+	}
+	return
+}
+
+func reportBucketKey(t time.Time, rangeType string) string {
+	switch rangeType {
+	case "day":
+		return t.Format("2006-01-02")
+	case "week":
+		return fmt.Sprintf("%04d-%02d-%d", t.Year(), t.Month(), getWeek(t))
+	case "month":
+		return t.Format("2006-01")
+	case "year":
+		return t.Format("2006")
+	default:
+		return ""
+	}
+}
+
+func normalizeFilter(value string) string {
+	if value == "undefined" || value == "null" {
+		return ""
+	}
+	return value
 }
 
 type errorResponse struct {

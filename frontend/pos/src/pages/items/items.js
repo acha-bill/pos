@@ -12,7 +12,6 @@ import Swal from "sweetalert2";
 import { ExcelRenderer } from "react-excel-renderer";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import apis from "../../apis/apis";
-import ReactExport from "react-export-excel";
 import { connect } from 'react-redux';
 import { setItems } from '../../redux/actions/itemActions';
 import { bindActionCreators } from 'redux'
@@ -21,9 +20,44 @@ import Switch from '@material-ui/core/Switch';
 import SyncAltIcon from '@material-ui/icons/SyncAlt';
 import "./items.css";
 
-const ExcelFile = ReactExport.ExcelFile;
-const ExcelSheet = ReactExport.ExcelFile.ExcelSheet;
-const ExcelColumn = ReactExport.ExcelFile.ExcelColumn;
+const exportColumns = [
+    { label: "Name", value: "name" },
+    { label: "Quantity", value: "qty" },
+    { label: "Barcode", value: "barcode" },
+    { label: "Category", value: "category" },
+    { label: "CostPrice", value: "costPrice" },
+    { label: "MinRetailPrice", value: "minRetailPrice" },
+    { label: "MaxRetailPrice", value: "maxRetailPrice" },
+    { label: "maxWholeSalePrice", value: "maxWholeSalePrice" },
+    { label: "minWholeSalePrice", value: "minWholeSalePrice" },
+    { label: "PurchasePrice", value: "purchasePrice" },
+    { label: "MinStockQty", value: "minStock" },
+];
+
+const escapeCsvCell = (value) => {
+    if (value === null || value === undefined) {
+        return "";
+    }
+    return `"${String(value).replace(/"/g, '""')}"`;
+};
+
+const downloadItemsCsv = (items) => {
+    const rows = [
+        exportColumns.map((column) => escapeCsvCell(column.label)).join(","),
+        ...items.map((item) =>
+            exportColumns.map((column) => escapeCsvCell(item[column.value])).join(",")
+        ),
+    ];
+    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "items.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+};
 
 const validateNumber = (n, field) => {
     n = Number(n);
@@ -305,24 +339,10 @@ function Items(props) {
                             </div>
                             <div className="ml-2">
 
-                                <ExcelFile element={<button className="btn btn-primary">
+                                <button className="btn btn-primary" onClick={() => downloadItemsCsv(exportItems)}>
                                     <BackupIcon style={{ position: "relative", bottom: "2" }} />
                                     <span className="ml-3">Export</span>
-                                </button>}>
-                                    <ExcelSheet data={exportItems} name="Items">
-                                        <ExcelColumn label="Name" value="name" />
-                                        <ExcelColumn label="Quantity" value="qty" />
-                                        <ExcelColumn label="Barcode" value="barcode" />
-                                        <ExcelColumn label="Category" value="category" />
-                                        <ExcelColumn label="CostPrice" value="costPrice" />
-                                        <ExcelColumn label="MinRetailPrice" value="minRetailPrice" />
-                                        <ExcelColumn label="MaxRetailPrice" value="maxRetailPrice" />
-                                        <ExcelColumn label="maxWholeSalePrice" value="maxWholeSalePrice" />
-                                        <ExcelColumn label="minWholeSalePrice" value="minWholeSalePrice" />
-                                        <ExcelColumn label="PurchasePrice" value="purchasePrice" />
-                                        <ExcelColumn label="MinStockQty" value="minStock" />
-                                    </ExcelSheet>
-                                </ExcelFile>
+                                </button>
                             </div>
                         </div>
                     </div>

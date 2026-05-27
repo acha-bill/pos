@@ -1,21 +1,19 @@
-import React, { Component } from 'react';
+import React, { Component, Suspense, lazy } from 'react';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './reports.css';
-import {
-  Dashboard,
-  InventoryReport,
-  Sales,
-  Customer,
-  PrintReport,
-  PhotocopyReport,
-  SpiralReport,
-  ScanReport,
-  StockMovement,
-  PrintDetailReport,
-  PrinterRefills
-} from '../../sections';
-import SaleDetailsReport from '../../sections/saledetails/saledetails';
+
+const Customer = lazy(() => import('../../sections/customer/customer'));
+const Dashboard = lazy(() => import('../../sections/dashboard/dashboard'));
+const InventoryReport = lazy(() => import('../../sections/inventory/inventory'));
+const PhotocopyReport = lazy(() => import('../../sections/photocopy/photocopy'));
+const PrintDetailReport = lazy(() => import('../../sections/printdetails/printdetails'));
+const PrinterRefills = lazy(() => import('../../sections/printerrefills/printerrefills'));
+const SaleDetailsReport = lazy(() => import('../../sections/saledetails/saledetails'));
+const Sales = lazy(() => import('../../sections/sales/sales'));
+const ScanReport = lazy(() => import('../../sections/scan/scan'));
+const SpiralReport = lazy(() => import('../../sections/spiral/spiral'));
+const StockMovement = lazy(() => import('../../sections/stockmovements/stockmovement'));
 
 
 const routes = [
@@ -94,7 +92,9 @@ class Reports extends Component {
             </div>
           </nav>
           <div className="my-container-xsm">
-            {this.renderRoutes()}
+            <Suspense fallback={<div className="text-center py-5">Loading report...</div>}>
+              {this.renderRoutes()}
+            </Suspense>
           </div>
         </div>
       </div>

@@ -79,15 +79,12 @@ func main() {
 		log.Errorf("error getting work dir: %w", err)
 	}
 	backupDir := dir + "/backups"
-	if _, err := os.Stat(backupDir); os.IsNotExist(err) {
-		err = os.Mkdir(backupDir, 0777)
-		if err != nil {
-			log.Errorf("error creating backup dir: %w", err)
-		}
+	if err := os.MkdirAll(backupDir, 0755); err != nil {
+		log.Errorf("error creating backup dir: %w", err)
 	}
 
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, syscall.SIGQUIT, syscall.SIGTERM)
+	signal.Notify(c, os.Interrupt, syscall.SIGQUIT, syscall.SIGTERM)
 	go backupWorker(backupDir, c)
 
 	e.Logger.Fatal(e.Start(":8081"))
@@ -95,6 +92,7 @@ func main() {
 
 func backupWorker(backupDir string, c chan os.Signal) {
 	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
